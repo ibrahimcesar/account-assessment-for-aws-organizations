@@ -11,6 +11,8 @@ deployment/temp/*
 **/package
 **/global-s3-assets
 **/regional-s3-assets
+# cfn-templates ARE committed — they are the deployable output of generate-cfn-templates.sh
+!deployment/cfn-templates
 **/open-source
 **/.zip
 **/tmp

@@ -50,7 +50,6 @@ source/lambda/coverage.*
 !deployment/manifest-generator/app.js
 *.d.ts
 node_modules
-!.nightswatch/**/*.js
 
 # CDK asset staging directory
 .cdk.staging
@@ -76,9 +75,6 @@ cdk.out
 
 # Generated file to investigate vite bundling
 /source/webui/stats.html
-
-# local environment file is user-specific and shouldn't be comitted
-.nightswatch/functional/.env
 
 /.temp_redpencil
 /bom.json

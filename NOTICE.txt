@@ -1276,6 +1276,7 @@ mypy-boto3-workspaces-instances under the MIT license.
 @aws-sdk/credential-provider-login under the Apache-2.0 license.
 @aws-sdk/nested-clients under the Apache-2.0 license.
 @aws/lambda-invoke-store under the Apache-2.0 license.
+@aws/cloudformation-validate under the Apache-2.0 license.
 @types/chai under the MIT license.
 @types/deep-eql under the MIT license.
 strip-literal under the MIT license.

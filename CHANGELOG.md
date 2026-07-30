@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.12] - 2026-07-30
+
+### Security
+
+- Updated aws-cdk-lib to v2.257.0 to mitigate [CVE-2026-6321](https://nvd.nist.gov/vuln/detail/CVE-2026-6321) and [CVE-2026-6322](https://nvd.nist.gov/vuln/detail/CVE-2026-6322)
+- Updated idna to v3.16 to mitigate bypass of [CVE-2024-3651](https://nvd.nist.gov/vuln/detail/CVE-2024-3651)
+- Updated joserfc to v1.6.8 to mitigate [CVE-2026-49852](https://avd.aquasec.com/nvd/cve-2026-49852) and [CVE-2026-48990](https://avd.aquasec.com/nvd/cve-2026-48990)
+- Updated js-yaml override to v4.3.0 to mitigate [CVE-2026-59869](https://avd.aquasec.com/nvd/cve-2026-59869)
+- Updated brace-expansion to v5.0.8 to mitigate [CVE-2026-14257](https://avd.aquasec.com/nvd/cve-2026-14257), [CVE-2026-13149](https://avd.aquasec.com/nvd/cve-2026-13149), and [CVE-2026-45149](https://avd.aquasec.com/nvd/cve-2026-45149)
+- Updated fast-uri to v3.1.4 to mitigate [CVE-2026-13676](https://avd.aquasec.com/nvd/cve-2026-13676) and [CVE-2026-16221](https://avd.aquasec.com/nvd/cve-2026-16221)
+- Updated postcss to v8.5.24 to mitigate [GHSA-r28c-9q8g-f849](https://github.com/advisories/GHSA-r28c-9q8g-f849)
+- Removed stale brace-expansion overrides now that glob/test-exclude resolve a patched version through their normal ranges
+
 ## [1.1.11] - 2026-05-19
 
 ### Security

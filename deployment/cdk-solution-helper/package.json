@@ -23,11 +23,9 @@
     "test": "jest --coverage"
   },
   "overrides": {
-    "js-yaml": "^4.1.1",
+    "js-yaml": "^4.3.0",
     "glob": "^11.1.0",
-    "test-exclude": "^7.0.1",
-    "@isaacs/brace-expansion": "^5.0.5",
-    "brace-expansion": "^2.0.3"
+    "test-exclude": "^7.0.1"
   },
   "jest": {
     "preset": "ts-jest",

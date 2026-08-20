@@ -621,6 +621,7 @@ saxes under the ISC license.
 scheduler under the MIT license.
 semver under the ISC license.
 set-blocking under the ISC license.
+set-cookie-parser under the MIT license.
 shebang-command under the MIT license.
 shebang-regex under the MIT license.
 shellingham under the ISC License license.

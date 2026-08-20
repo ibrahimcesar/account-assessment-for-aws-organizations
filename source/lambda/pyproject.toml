@@ -27,6 +27,7 @@ openapi-spec-validator = "~0.7.1"
 docker = "~7.1.0"
 joserfc = ">=1.6.8"
 werkzeug = ">=3.1.6"
+cryptography = ">=50.0.0"
 
 
 [build-system]

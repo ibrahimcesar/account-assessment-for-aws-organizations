@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.13] - 2026-08-20
+
+### Security
+
+- Updated aws-cdk-lib to v2.265.0 and brace-expansion to v5.0.9 to mitigate [CVE-2026-14257](https://avd.aquasec.com/nvd/cve-2026-14257) and [CVE-2026-69152](https://avd.aquasec.com/nvd/cve-2026-69152)
+- Updated fast-uri to v3.1.5 to mitigate [CVE-2026-18446](https://avd.aquasec.com/nvd/cve-2026-18446)
+- Updated react-router-dom to v7.18.2 to mitigate [CVE-2026-53666](https://avd.aquasec.com/nvd/cve-2026-53666), [CVE-2026-53668](https://avd.aquasec.com/nvd/cve-2026-53668), and [CVE-2026-53669](https://avd.aquasec.com/nvd/cve-2026-53669)
+- Updated js-yaml to v4.3.1 to mitigate [GHSA-5p4m-2wfm-xmqj](https://github.com/advisories/GHSA-5p4m-2wfm-xmqj)
+- Updated cryptography to v50.0.0 to mitigate [CVE-2026-69247](https://avd.aquasec.com/nvd/cve-2026-69247)
+- Updated nanoid to v3.3.18 to mitigate [CVE-2026-67213](https://avd.aquasec.com/nvd/cve-2026-67213)
+
 ## [1.1.12] - 2026-07-30
 
 ### Security

@@ -96,6 +96,38 @@ test('spoke stack synth doesnt crash', () => {
   expect(template).toMatchSnapshot();
 });
 
+test('installer hub stack reads release assets from the provided bucket', () => {
+  // GIVEN
+  const app = new App();
+
+  // WHEN
+  const stack = new AccountAssessmentHubStack(
+    app,
+    'AccountAssessment-InstallerHubStack',
+    {
+      ...props,
+      solutionBucketName: undefined,
+      useInstallerAssets: true
+    }
+  );
+  const template = Template.fromStack(stack);
+
+  // THEN
+  template.hasParameter('AssetBucketName', {
+    Description: 'Name of the private S3 bucket containing the GitHub release assets.',
+    Type: 'String'
+  });
+  template.hasResourceProperties('AWS::Lambda::Function', {
+    Code: {
+      S3Bucket: {Ref: 'AssetBucketName'},
+      S3Key: 'account-assessment-for-aws-organizations/v1.0.0/lambda.zip'
+    }
+  });
+  expect(JSON.stringify(template.toJSON())).toContain(
+    'account-assessment-for-aws-organizations/v1.0.0/webui.zip'
+  );
+});
+
 
 function overwriteS3Keys(obj: any, value: string = 'foo.zip'): void {
   if (Array.isArray(obj)) {

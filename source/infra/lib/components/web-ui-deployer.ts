@@ -5,23 +5,25 @@ import {Construct} from "constructs";
 import * as cdk from "aws-cdk-lib";
 import {CustomResource} from "aws-cdk-lib";
 import * as lambda from "aws-cdk-lib/aws-lambda";
-import {AssetCode, Runtime} from "aws-cdk-lib/aws-lambda";
+import {Code, Runtime} from "aws-cdk-lib/aws-lambda";
 import {CognitoAuthenticationResources} from "./cognito-authenticator";
 import {Bucket, IBucket} from "aws-cdk-lib/aws-s3";
 import {Distribution} from "aws-cdk-lib/aws-cloudfront";
 import {Asset} from "aws-cdk-lib/aws-s3-assets";
+import {PolicyStatement} from "aws-cdk-lib/aws-iam";
 
 type WebUIDeployerProps = {
   region: string,
-  orgId: string,
   apiGatewayUrl: string,
   deploymentBucket: IBucket,
   cloudFront: Distribution,
   auth: CognitoAuthenticationResources,
+  deploymentSourceBucket?: IBucket,
   deploymentSourceBucketName?: string,
   deploymentSourcePath?: string,
+  deploymentSourceType?: 'archive' | 'prefix',
   localWebUiAssetPath?: string,
-  assetCode: AssetCode,
+  assetCode: Code,
   solutionVersion: string,
   stackId: string,
   sendAnonymousData: string
@@ -31,13 +33,14 @@ export class WebUIDeployer extends Construct {
 
   constructor(scope: Construct, id: string, {
     region,
-    orgId,
     apiGatewayUrl,
     deploymentBucket,
     cloudFront,
     auth,
+    deploymentSourceBucket: providedDeploymentSourceBucket,
     deploymentSourceBucketName,
     deploymentSourcePath,
+    deploymentSourceType,
     localWebUiAssetPath,
     assetCode,
     solutionVersion,
@@ -61,6 +64,12 @@ export class WebUIDeployer extends Construct {
       sourcePath = webUiAsset.s3ObjectKey;
       sourceType = 'archive';
       sourceFingerprint = webUiAsset.assetHash;
+    } else if (providedDeploymentSourceBucket && deploymentSourcePath) {
+      deploymentSourceBucket = providedDeploymentSourceBucket;
+      sourceBucketName = deploymentSourceBucket.bucketName;
+      sourcePath = deploymentSourcePath;
+      sourceType = deploymentSourceType ?? 'prefix';
+      sourceFingerprint = solutionVersion;
     } else if (deploymentSourceBucketName && deploymentSourcePath) {
       deploymentSourceBucket = Bucket.fromBucketAttributes(this, 'SolutionRegionalBucket', {
         bucketName: deploymentSourceBucketName + '-' + region
@@ -98,8 +107,7 @@ export class WebUIDeployer extends Construct {
           responseType: "code",
           clientId: auth.userPoolClient.userPoolClientId,
         }
-      },
-      OrgId: orgId
+      }
     };
     const webUiDeploymentConfig = {
       SourceType: sourceType,
@@ -126,6 +134,10 @@ export class WebUIDeployer extends Construct {
     });
     deploymentBucket.grantPut(webUIDeploymentFunction);
     deploymentSourceBucket.grantRead(webUIDeploymentFunction);
+    webUIDeploymentFunction.addToRolePolicy(new PolicyStatement({
+      actions: ['organizations:DescribeOrganization'],
+      resources: ['*']
+    }));
 
     new CustomResource(this, 'WebUIDeploymentResource', {
       serviceToken: webUIDeploymentFunction.functionArn,

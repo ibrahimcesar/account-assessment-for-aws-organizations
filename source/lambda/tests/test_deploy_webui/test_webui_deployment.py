@@ -14,6 +14,12 @@ from aws.utils.boto3_session import Boto3Session
 from deploy_webui.deploy_webui import WebUIDeployer, lambda_handler
 
 
+def create_organization() -> str:
+    organizations_client = Boto3Session('organizations').get_client()
+    response = organizations_client.create_organization(FeatureSet='ALL')
+    return response['Organization']['Id']
+
+
 def describe_webui_deploy():
     webui_src_path = "account-assessment/v1.2.3/webui/"
     config = {
@@ -37,6 +43,7 @@ def describe_webui_deploy():
     @mock_aws
     def test_webui_files_are_copied_and_config_is_generated():
         # ARRANGE
+        organization_id = create_organization()
         web_ui_deployer = WebUIDeployer()
         s3_resource: S3ServiceResource = Boto3Session('s3').get_resource()
 
@@ -72,6 +79,8 @@ def describe_webui_deploy():
 
         generated_config_filename = "aws-exports-generated.json"
         assert generated_config_filename in keys
+        generated_config = S3().read_json_file(webui_bucket.name, generated_config_filename)
+        assert generated_config["OrgId"] == organization_id
 
     @mock_aws
     def test_lambda_handler_throws_no_such_bucket():
@@ -85,6 +94,7 @@ def describe_webui_deploy():
     @mock_aws
     def test_webui_archive_is_extracted_and_config_is_generated():
         # ARRANGE
+        organization_id = create_organization()
         archive_config = {
             **config,
             "SourceType": "archive",
@@ -117,3 +127,8 @@ def describe_webui_deploy():
         assert "assets/app.js" in keys
         assert "aws-exports-generated.json" in keys
         assert "webui-manifest.json" not in keys
+        generated_config = S3().read_json_file(
+            webui_bucket.name,
+            "aws-exports-generated.json",
+        )
+        assert generated_config["OrgId"] == organization_id

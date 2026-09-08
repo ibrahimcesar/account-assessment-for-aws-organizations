@@ -18,7 +18,6 @@ exports[`hub stack synth doesnt crash 1`] = `
           },
           "Parameters": [
             "DeploymentNamespace",
-            "OrganizationID",
           ],
         },
         {
@@ -46,14 +45,6 @@ exports[`hub stack synth doesnt crash 1`] = `
             "AllowListedIPRanges",
           ],
         },
-        {
-          "Label": {
-            "default": "Application Manager Configuration",
-          },
-          "Parameters": [
-            "ManagementAccountId",
-          ],
-        },
       ],
       "ParameterLabels": {
         "AllowListedIPRanges": {
@@ -65,14 +56,8 @@ exports[`hub stack synth doesnt crash 1`] = `
         "DynamoTimeToLive": {
           "default": "Provide Time to live (in days) for DynamoDB items.",
         },
-        "ManagementAccountId": {
-          "default": "Provide the Org Management Account ID",
-        },
         "MultiFactorAuthentication": {
           "default": "Set MFA for Cognito to 'ON' or 'OPTIONAL'",
-        },
-        "OrganizationID": {
-          "default": "Provide the AWS Organization ID",
         },
         "UserEmail": {
           "default": "Provide Web UI Login User Email",
@@ -176,10 +161,6 @@ exports[`hub stack synth doesnt crash 1`] = `
       "Description": "DynamoDB will delete each stored Item after the given time. This value will be applicable to all the DynamoDB tables.",
       "Type": "Number",
     },
-    "ManagementAccountId": {
-      "Description": "Account ID for the management account of the Organization.",
-      "Type": "String",
-    },
     "MultiFactorAuthentication": {
       "AllowedValues": [
         "ON",
@@ -187,11 +168,6 @@ exports[`hub stack synth doesnt crash 1`] = `
       ],
       "Default": "OPTIONAL",
       "Description": "Set to 'ON' or 'OPTIONAL' to enable multi factor authentication for Cognito User Pool.",
-      "Type": "String",
-    },
-    "OrganizationID": {
-      "AllowedPattern": "^$|^o-[a-z0-9]{10,32}$",
-      "Description": "Organization ID",
       "Type": "String",
     },
     "UserEmail": {
@@ -7266,11 +7242,7 @@ Temporary Password: <strong>{####}</strong>
                   {
                     "Ref": "AuthFullAccessUsersWebUIClient18642E52",
                   },
-                  ""}},"OrgId":"",
-                  {
-                    "Ref": "OrganizationID",
-                  },
-                  ""}}",
+                  ""}}}}",
                 ],
               ],
             },
@@ -7419,6 +7391,11 @@ Temporary Password: <strong>{####}</strong>
                   ],
                 },
               ],
+            },
+            {
+              "Action": "organizations:DescribeOrganization",
+              "Effect": "Allow",
+              "Resource": "*",
             },
           ],
           "Version": "2012-10-17",

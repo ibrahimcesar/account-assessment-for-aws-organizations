@@ -5,14 +5,14 @@ import {Construct} from "constructs";
 import {AttributeType, BillingMode, Table, TableEncryption} from "aws-cdk-lib/aws-dynamodb";
 import {CfnParameter, Duration} from "aws-cdk-lib";
 import * as lambda from "aws-cdk-lib/aws-lambda";
-import {AssetCode, Runtime} from "aws-cdk-lib/aws-lambda";
+import {Code, Runtime} from "aws-cdk-lib/aws-lambda";
 import {AuthorizationType, LambdaIntegration, RestApi} from "aws-cdk-lib/aws-apigateway";
 import {CognitoAuthenticationResources} from "./cognito-authenticator";
 
 type JobHistoryComponentProps = {
   cognitoAuthenticationResources: CognitoAuthenticationResources,
   api: RestApi,
-  assetCode: AssetCode,
+  assetCode: Code,
   dynamoTtlInDays: CfnParameter,
   solutionVersion: string,
   stackId: string

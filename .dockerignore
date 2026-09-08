@@ -12,4 +12,5 @@
 **/global-s3-assets
 **/node_modules
 **/regional-s3-assets
+deployment/release
 **/staging

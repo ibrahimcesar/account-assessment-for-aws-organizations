@@ -10,11 +10,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Added a pinned Docker and Make workflow for building, testing, synthesizing, and deploying the solution.
-- Added pull request CI that runs the complete test suite and produces a deployable CDK cloud assembly.
+- Added pull request CI that runs the complete test suite and produces the deployable GitHub release artifacts.
+- Added a CloudFormation installer that retrieves a checksummed deployment payload from each GitHub release.
+- Added a release workflow that builds and attaches the installer, payload, and account templates automatically.
 
 ### Changed
 
 - Direct CDK deployments now package local Lambda and WebUI assets without requiring a manually managed distribution bucket.
+- The hub deployment now discovers organization details instead of requiring organization and management account parameters.
+- End-user deployment no longer requires Docker, Node.js, npm, GNU Make, the AWS CLI, or a CDK bootstrap.
 
 ## [1.1.13] - 2026-08-20
 

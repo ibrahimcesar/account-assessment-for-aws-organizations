@@ -35,8 +35,10 @@ const SOLUTION_TMN = getSetting(
 const SOLUTION_PROVIDER = 'AWS Solution Development';
 const ASSET_MODE = getSetting('ASSET_MODE', 'asset_mode', 'local').toLowerCase();
 
-if (!['local', 'distribution'].includes(ASSET_MODE)) {
-  throw new Error(`Unsupported ASSET_MODE '${ASSET_MODE}'. Expected 'local' or 'distribution'.`);
+if (!['local', 'distribution', 'installer'].includes(ASSET_MODE)) {
+  throw new Error(
+    `Unsupported ASSET_MODE '${ASSET_MODE}'. Expected 'local', 'distribution', or 'installer'.`
+  );
 }
 
 const solutionBucketName = ASSET_MODE === 'distribution'
@@ -58,6 +60,7 @@ const accountAssessmentHubStackProperties: AccountAssessmentHubStackProps = {
   solutionProvider: SOLUTION_PROVIDER,
   solutionBucketName,
   localWebUiAssetPath,
+  useInstallerAssets: ASSET_MODE === 'installer',
   solutionName: SOLUTION_NAME,
   solutionVersion: SOLUTION_VERSION,
   description: '(' + SOLUTION_ID + ') - The AWS CloudFormation hub template' +

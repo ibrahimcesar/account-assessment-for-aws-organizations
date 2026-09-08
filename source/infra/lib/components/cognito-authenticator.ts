@@ -7,7 +7,7 @@ import {aws_cognito as cognito, CfnOutput, CfnParameter, CustomResource, Duratio
 import {Mfa, OAuthScope, UserPool, UserPoolClient, UserPoolResourceServer} from "aws-cdk-lib/aws-cognito";
 import {CfnAuthorizer} from "aws-cdk-lib/aws-apigateway";
 import * as lambda from "aws-cdk-lib/aws-lambda";
-import {AssetCode, Runtime} from "aws-cdk-lib/aws-lambda";
+import {Code, Runtime} from "aws-cdk-lib/aws-lambda";
 import {PolicyStatement} from "aws-cdk-lib/aws-iam";
 
 type CognitoAuthenticationProps = {
@@ -19,7 +19,7 @@ type CognitoAuthenticationProps = {
   cognitoDomainPrefix: string,
   multiFactorAuthentication: CfnParameter,
   userEmail: CfnParameter,
-  assetCode: AssetCode,
+  assetCode: Code,
 };
 
 export type CognitoAuthenticationResources = {

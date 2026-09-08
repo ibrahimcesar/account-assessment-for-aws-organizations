@@ -11,6 +11,7 @@ deployment/temp/*
 **/package
 **/global-s3-assets
 **/regional-s3-assets
+/deployment/release/
 **/open-source
 **/.zip
 **/tmp

@@ -12,6 +12,7 @@ generated_paths=(
   "$deployment_dir/cdk.out"
   "$deployment_dir/global-s3-assets"
   "$deployment_dir/regional-s3-assets"
+  "$deployment_dir/release"
   "$deployment_dir/staging"
   "$deployment_dir/cdk-solution-helper/build"
   "$deployment_dir/cdk-solution-helper/coverage"

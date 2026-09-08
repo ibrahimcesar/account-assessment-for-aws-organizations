@@ -11,6 +11,7 @@ import {CognitoAuthenticator} from "./components/cognito-authenticator";
 import {WebUIHosting} from "./components/web-ui-hosting";
 import {Api} from "./components/api";
 import {Code} from "aws-cdk-lib/aws-lambda";
+import {Bucket} from "aws-cdk-lib/aws-s3";
 import * as path from "path";
 import * as iam from 'aws-cdk-lib/aws-iam';
 import {PolicyExplorerScanComponent} from './components/policy-explorer';
@@ -27,6 +28,7 @@ export interface AccountAssessmentHubStackProps extends cdk.StackProps {
   solutionProvider: string;
   solutionBucketName?: string;
   localWebUiAssetPath?: string;
+  useInstallerAssets?: boolean;
   solutionName: string;
   solutionVersion: string;
 }
@@ -51,28 +53,29 @@ export class AccountAssessmentHubStack extends cdk.Stack {
       constraintDescription: 'Must be 3-10 characters long, containing only lowercase letters, numbers, and hyphens. Cannot begin or end with a hyphen.'
     });
 
-    const orgId = new CfnParameter(this, "OrganizationID", {
-      description:
-        "Organization ID",
-      type: "String",
-      allowedPattern: "^$|^o-[a-z0-9]{10,32}$",
-    });
-
-    const managementAccountId = new CfnParameter(
-      this,
-      "ManagementAccountId",
-      {
-        description:
-          "Account ID for the management account of the Organization.",
-        type: "String",
-      }
-    );
-
     const api = new Api(this, 'Api', {region: this.region, allowListedIPRanges, namespace});
 
-    const lambdaZip = Code.fromAsset(
-      `${path.dirname(__dirname)}/../../deployment/regional-s3-assets/lambda.zip`
-    );
+    const installerAssetBucketName = props.useInstallerAssets
+      ? new CfnParameter(this, 'AssetBucketName', {
+        description: 'Name of the private S3 bucket containing the GitHub release assets.',
+        type: 'String'
+      })
+      : undefined;
+    const installerAssetBucket = installerAssetBucketName
+      ? Bucket.fromBucketName(
+        this,
+        'InstallerAssetBucket',
+        installerAssetBucketName.valueAsString
+      )
+      : undefined;
+    const lambdaZip = installerAssetBucket
+      ? Code.fromBucket(
+        installerAssetBucket,
+        `${props.solutionTradeMarkName}/${props.solutionVersion}/lambda.zip`
+      )
+      : Code.fromAsset(
+        `${path.dirname(__dirname)}/../../deployment/regional-s3-assets/lambda.zip`
+      );
 
     const {cloudFrontToS3, s3BucketInterface} = new WebUIHosting(this, 'WebUIHosting', {namespace});
 
@@ -114,7 +117,7 @@ export class AccountAssessmentHubStack extends cdk.Stack {
         ParameterGroups: [
           {
             Label: {default: "Solution Setup"},
-            Parameters: [namespace.logicalId, orgId.logicalId]
+            Parameters: [namespace.logicalId]
           },
           {
             Label: {default: "DynamoDB Configuration"},
@@ -127,18 +130,11 @@ export class AccountAssessmentHubStack extends cdk.Stack {
           {
             Label: {default: "Security Configuration"},
             Parameters: [allowListedIPRanges.logicalId]
-          },
-          {
-            Label: {default: "Application Manager Configuration"},
-            Parameters: [managementAccountId.logicalId]
           }
         ],
         ParameterLabels: {
           [namespace.logicalId]: {
             default: "Provide a unique namespace value.",
-          },
-          [orgId.logicalId]: {
-            default: "Provide the AWS Organization ID",
           },
           [dynamoTtlInDays.logicalId]: {
             default: "Provide Time to live (in days) for DynamoDB items.",
@@ -151,9 +147,6 @@ export class AccountAssessmentHubStack extends cdk.Stack {
           },
           [allowListedIPRanges.logicalId]: {
             default: "Provide CIDR ranges that allow to console to access the API.",
-          },
-          [managementAccountId.logicalId]: {
-            default: "Provide the Org Management Account ID",
           }
         },
       },
@@ -237,15 +230,18 @@ export class AccountAssessmentHubStack extends cdk.Stack {
 
     new WebUIDeployer(this, 'WebUIDeployer', {
       region: this.region,
-      orgId: orgId.valueAsString,
       apiGatewayUrl: api.apiGatewayUrl,
       deploymentBucket: s3BucketInterface,
       cloudFront: cloudFrontToS3.cloudFrontWebDistribution,
       auth: cognitoAuthenticationResources,
+      deploymentSourceBucket: installerAssetBucket,
       deploymentSourceBucketName: props.solutionBucketName,
-      deploymentSourcePath: props.solutionBucketName
-        ? `${this.props.solutionTradeMarkName}/${this.props.solutionVersion}/webui/`
-        : undefined,
+      deploymentSourcePath: installerAssetBucket
+        ? `${this.props.solutionTradeMarkName}/${this.props.solutionVersion}/webui.zip`
+        : props.solutionBucketName
+          ? `${this.props.solutionTradeMarkName}/${this.props.solutionVersion}/webui/`
+          : undefined,
+      deploymentSourceType: installerAssetBucket ? 'archive' : undefined,
       localWebUiAssetPath: props.localWebUiAssetPath,
       assetCode: lambdaZip,
       solutionVersion: props.solutionVersion,

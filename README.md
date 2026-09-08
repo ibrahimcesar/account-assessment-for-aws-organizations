@@ -12,13 +12,13 @@ implementation guide.
 
 - [Solution Overview](#solution-overview)
 - [Architecture](#architecture)
-- [Installation](#installing-pre-packaged-solution-template)
+- [Installation](#installing-from-a-github-release)
 - [Customization](#customization)
   - [Setup](#setup)
   - [File Structure](#file-structure)
   - [Unit Test](#unit-test)
   - [Build](#build)
-  - [Deploy](#deploy)
+  - [Deploy from source](#deploy-from-source)
   - [Faster development cycles](#faster-development-cycles)
 - [License](#License)
 
@@ -26,13 +26,44 @@ implementation guide.
 
 ## Architecture
 
-The default deployment of solution pre-packaged template deploys following infrastructure in your account.
+The default prepackaged deployment deploys the following infrastructure in your account.
 
 <img src="./docs/architecture.png" alt="architecture diagram">
 
-## Installing pre-packaged solution template
+## Installing from a GitHub release
 
-#### Parameters
+Each GitHub release includes a small CloudFormation installer template and a checksummed release payload. Deployment
+users do not need Docker, Node.js, npm, GNU Make, the AWS CLI, or a source checkout.
+
+Requirements:
+
+- Permission to create CloudFormation stacks and the solution resources in each target account
+- Outbound access from AWS Lambda to GitHub during installation
+
+To deploy the hub:
+
+1. Download `account-assessment-for-aws-organizations-<VERSION>-installer.template` from the GitHub release.
+2. In the hub account and Region, open AWS CloudFormation and choose **Create stack**.
+3. Upload the installer template, provide the namespace and initial user email, and acknowledge named IAM resources.
+4. Create the stack.
+
+The installer downloads the matching payload from the same GitHub release, verifies its embedded SHA-256 checksum,
+stages it in a private bucket created in the hub account, and deploys the hub as a nested stack. No public or
+maintainer-managed deployment bucket is used.
+
+The Web UI deployment discovers the organization ID through AWS Organizations, and the solution discovers the
+management account ID at runtime. Neither value is a deployment parameter.
+
+The release also includes standalone organization-management and spoke templates. Upload those templates through
+CloudFormation in the corresponding accounts, provide the hub account ID and the same deployment namespace, and
+acknowledge named IAM resources. Deploy the spoke template in every account that the solution will assess.
+
+The application continues to use its own S3 bucket for Web UI hosting. The installer staging bucket is private,
+account-local, and deleted with the installer stack.
+
+To upgrade, update the installer stack with the template from the new GitHub release, then update the
+organization-management and spoke stacks with their matching templates. To uninstall the hub, delete the installer
+stack; CloudFormation removes the nested hub and then empties and deletes the staging bucket.
 
 ***
 
@@ -40,7 +71,10 @@ The default deployment of solution pre-packaged template deploys following infra
 
 ### Setup
 
-The supported build path requires only:
+This section is for maintainers building the solution from source. Deployment users should use the prepackaged
+release bundle above.
+
+The source build path requires:
 
 - Docker with Linux AMD64 container support
 - GNU Make
@@ -59,6 +93,10 @@ Repository npm commands also ignore user-level registry configuration and use th
 │   ├── build-lambdas.sh               - creates the Linux/x86_64 Lambda package
 │   ├── build-s3-dist.sh               - optional legacy CloudFormation distribution builder
 │   ├── cdk.sh                         - builds assets and runs the local CDK application
+│   ├── package-release.sh             - creates GitHub release deployment artifacts
+│   ├── create-installer-template.py   - generates the CloudFormation installer
+│   ├── validate-release.py            - validates generated release artifacts
+│   ├── prepackaged/                   - inline installer and release documentation
 │   ├── cdk-solution-helper/           - converts templates for the legacy distribution format
 │   └── manifest-generator/            - creates the WebUI deployment manifest
 └── source/
@@ -97,7 +135,20 @@ make synth
 
 The cloud assembly is written to `deployment/cdk.out/`.
 
-### Deploy
+Generate the artifacts attached to a GitHub release:
+
+```shell
+make package VERSION=v1.1.14
+```
+
+The release directory contains:
+
+- The hub installer CloudFormation template
+- The checksummed GitHub release payload
+- The organization-management CloudFormation template
+- The spoke CloudFormation template
+
+### Deploy from source
 
 The normal deployment path does not require a user-created distribution bucket and does not require manual
 `aws s3 cp` commands. CDK synthesizes the CloudFormation stacks and publishes temporary assets through the
@@ -119,9 +170,7 @@ make deploy \
   CDK_ARGS="--profile <PROFILE_HUB> \
     --parameters DeploymentNamespace=<NAMESPACE> \
     --parameters UserEmail=<EMAIL> \
-    --parameters AllowListedIPRanges=<IP_RANGES> \
-    --parameters OrganizationID=<ORG_ID> \
-    --parameters ManagementAccountId=<MANAGEMENT_ACCOUNT_ID>"
+    --parameters AllowListedIPRanges=<IP_RANGES>"
 ```
 
 Deploy the organization-management stack:
@@ -155,7 +204,7 @@ Maintainers who need the historical AWS Solutions layout can still generate `glo
 make distribution DIST_BUCKET=<BUCKET_BASE_NAME> VERSION=v1.1.13
 ```
 
-This publication path is separate from the default direct-CDK deployment path.
+This publication path is separate from both the GitHub installer and the direct-CDK deployment paths.
 
 ### Faster development cycles
 

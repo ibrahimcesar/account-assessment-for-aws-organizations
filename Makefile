@@ -16,6 +16,7 @@ DOCKER_BASE = docker run --rm \
 	--env SOLUTION_NAME \
 	--env SOLUTION_TRADEMARKEDNAME \
 	--env SOLUTION_VERSION \
+	--env RELEASE_REPOSITORY \
 	--env AWS_ACCESS_KEY_ID \
 	--env AWS_SECRET_ACCESS_KEY \
 	--env AWS_SESSION_TOKEN \
@@ -34,7 +35,7 @@ endif
 DOCKER_RUN = $(DOCKER_BASE) "$(BUILD_IMAGE)"
 DOCKER_RUN_AWS = $(DOCKER_BASE) $(DOCKER_AWS_CONFIG) "$(BUILD_IMAGE)"
 
-.PHONY: image build test synth cdk deploy distribution clean
+.PHONY: image build test synth package cdk deploy distribution clean
 
 image:
 	docker build --platform "$(BUILD_PLATFORM)" --tag "$(BUILD_IMAGE)" .
@@ -47,6 +48,10 @@ test: image
 
 synth: image
 	$(DOCKER_RUN) ./deployment/cdk.sh synth '*' --output /workspace/deployment/cdk.out
+
+package: image
+	@test -n "$(VERSION)" || (echo "Usage: make package VERSION=<release-version>"; exit 2)
+	$(DOCKER_RUN) ./deployment/package-release.sh "$(VERSION)"
 
 cdk: image
 	@test -n "$(CDK_ARGS)" || (echo "Usage: make cdk CDK_ARGS='<cdk command and arguments>'"; exit 2)

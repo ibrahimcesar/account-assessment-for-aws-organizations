@@ -9,6 +9,7 @@ import cfnresponse
 from aws_lambda_powertools import Logger, Tracer
 
 from aws.services.s3 import S3
+from aws.utils.boto3_session import Boto3Session
 
 logger = Logger(getenv('LOG_LEVEL'))
 tracer = Tracer()
@@ -51,12 +52,21 @@ class WebUIDeployer:
 
     def _create_config_file(self, config):
         self.logger.info("Reading awsExports")
-        exports = config.get("awsExports")
+        exports = dict(config.get("awsExports") or {})
+        exports["OrgId"] = self._get_organization_id()
         self.logger.info(exports)
 
         webui_bucket = config.get("WebUIBucket")
         self.logger.info("Creating aws-exports-generated.json in " + webui_bucket)
         self.s3.write_json_as_file(webui_bucket, "aws-exports-generated.json", exports)
+
+    def _get_organization_id(self) -> str:
+        organizations_client = Boto3Session('organizations').get_client()
+        response = organizations_client.describe_organization()
+        organization_id = response.get("Organization", {}).get("Id")
+        if not organization_id:
+            raise ValueError("AWS Organizations did not return an organization ID.")
+        return organization_id
 
     def _copy_ui_files_to_console_bucket(self, config):
         webui_bucket_name = config.get("WebUIBucket")

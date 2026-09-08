@@ -29,7 +29,7 @@ export interface PolicyExplorerScanComponentProps {
     partitionKeyName: string;
     sortKeyName: string;
   };
-  assetCode: lambda.AssetCode;
+  assetCode: lambda.Code;
   tables: {
     jobHistory: Table,
   },

@@ -5,7 +5,7 @@ import {Construct} from "constructs";
 import {AttributeType, BillingMode, Table, TableEncryption} from "aws-cdk-lib/aws-dynamodb";
 import {CfnParameter, Duration} from "aws-cdk-lib";
 import * as lambda from "aws-cdk-lib/aws-lambda";
-import {AssetCode, Runtime} from "aws-cdk-lib/aws-lambda";
+import {Code, Runtime} from "aws-cdk-lib/aws-lambda";
 import {CfnPolicy, CfnRole, PolicyStatement} from "aws-cdk-lib/aws-iam";
 import {
   AuthorizationType,
@@ -40,7 +40,7 @@ export interface AssessmentComponentProps {
   requestValidation?: {
     scanRequestBodyModelProps: ModelProps
   },
-  assetCode: AssetCode,
+  assetCode: Code,
   namespace: CfnParameter,
   region: string
 }

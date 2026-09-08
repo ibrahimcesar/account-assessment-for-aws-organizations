@@ -59,11 +59,24 @@ def main() -> None:
     if release_properties["HubTemplateKey"] != args.hub_template_key:
         raise ValueError("Installer references an unexpected hub template key.")
 
+    installer_parameters = installer.get("Parameters", {})
+    installer_send_anonymous_data = installer_parameters.get(
+        "SendAnonymousData", {}
+    )
+    if installer_send_anonymous_data.get("Default") != "Yes":
+        raise ValueError("Installer has an unexpected operational metrics default.")
+    if installer_send_anonymous_data.get("AllowedValues") != ["Yes", "No"]:
+        raise ValueError("Installer does not expose the operational metrics choice.")
+
     nested_parameters = installer["Resources"]["SolutionStack"]["Properties"][
         "Parameters"
     ]
     if nested_parameters.get("AssetBucketName") != {"Ref": "ArtifactBucket"}:
         raise ValueError("Installer does not pass its private asset bucket.")
+    if nested_parameters.get("SendAnonymousData") != {
+        "Ref": "SendAnonymousData"
+    }:
+        raise ValueError("Installer does not pass the operational metrics choice.")
 
     with ZipFile(args.payload) as archive:
         archive_names = set(archive.namelist())
@@ -87,6 +100,9 @@ def main() -> None:
     hub_parameters = hub_template.get("Parameters", {})
     if "AssetBucketName" not in hub_parameters:
         raise ValueError("Hub template does not accept the installer asset bucket.")
+    send_anonymous_data = hub_parameters.get("SendAnonymousData", {})
+    if send_anonymous_data.get("AllowedValues") != ["Yes", "No"]:
+        raise ValueError("Hub template does not expose the operational metrics choice.")
     for removed_parameter in ("OrganizationID", "ManagementAccountId"):
         if removed_parameter in hub_parameters:
             raise ValueError(

@@ -54,6 +54,10 @@ def build_template(
                         "Label": {"default": "Security configuration"},
                         "Parameters": ["AllowListedIPRanges"],
                     },
+                    {
+                        "Label": {"default": "Operational metrics"},
+                        "Parameters": ["SendAnonymousData"],
+                    },
                 ],
                 "ParameterLabels": {
                     "DeploymentNamespace": {
@@ -68,6 +72,9 @@ def build_template(
                     },
                     "AllowListedIPRanges": {
                         "default": "CIDR ranges allowed to access the API"
+                    },
+                    "SendAnonymousData": {
+                        "default": "Send anonymized operational metrics to AWS"
                     },
                 },
             }
@@ -119,6 +126,12 @@ def build_template(
                 ),
                 "Type": "CommaDelimitedList",
                 "Default": "0.0.0.0/1,128.0.0.0/1",
+            },
+            "SendAnonymousData": {
+                "Description": "Send anonymized operational metrics to AWS.",
+                "Type": "String",
+                "Default": "Yes",
+                "AllowedValues": ["Yes", "No"],
             },
         },
         "Resources": {
@@ -330,6 +343,9 @@ def build_template(
                                 ",",
                                 {"Ref": "AllowListedIPRanges"},
                             ]
+                        },
+                        "SendAnonymousData": {
+                            "Ref": "SendAnonymousData"
                         },
                     },
                     "Tags": [

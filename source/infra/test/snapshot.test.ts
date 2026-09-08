@@ -117,6 +117,12 @@ test('installer hub stack reads release assets from the provided bucket', () => 
     Description: 'Name of the private S3 bucket containing the GitHub release assets.',
     Type: 'String'
   });
+  template.hasParameter('SendAnonymousData', {
+    AllowedValues: ['Yes', 'No'],
+    Default: 'Yes',
+    Description: 'Send anonymized operational metrics to AWS.',
+    Type: 'String'
+  });
   template.hasResourceProperties('AWS::Lambda::Function', {
     Code: {
       S3Bucket: {Ref: 'AssetBucketName'},

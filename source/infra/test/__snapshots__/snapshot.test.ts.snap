@@ -2,13 +2,6 @@
 
 exports[`hub stack synth doesnt crash 1`] = `
 {
-  "Mappings": {
-    "AnonymousData": {
-      "SendAnonymousData": {
-        "Data": "Yes",
-      },
-    },
-  },
   "Metadata": {
     "AWS::CloudFormation::Interface": {
       "ParameterGroups": [
@@ -45,6 +38,14 @@ exports[`hub stack synth doesnt crash 1`] = `
             "AllowListedIPRanges",
           ],
         },
+        {
+          "Label": {
+            "default": "Operational Metrics Configuration",
+          },
+          "Parameters": [
+            "SendAnonymousData",
+          ],
+        },
       ],
       "ParameterLabels": {
         "AllowListedIPRanges": {
@@ -58,6 +59,9 @@ exports[`hub stack synth doesnt crash 1`] = `
         },
         "MultiFactorAuthentication": {
           "default": "Set MFA for Cognito to 'ON' or 'OPTIONAL'",
+        },
+        "SendAnonymousData": {
+          "default": "Send anonymized operational metrics to AWS.",
         },
         "UserEmail": {
           "default": "Provide Web UI Login User Email",
@@ -168,6 +172,15 @@ exports[`hub stack synth doesnt crash 1`] = `
       ],
       "Default": "OPTIONAL",
       "Description": "Set to 'ON' or 'OPTIONAL' to enable multi factor authentication for Cognito User Pool.",
+      "Type": "String",
+    },
+    "SendAnonymousData": {
+      "AllowedValues": [
+        "Yes",
+        "No",
+      ],
+      "Default": "Yes",
+      "Description": "Send anonymized operational metrics to AWS.",
       "Type": "String",
     },
     "UserEmail": {
@@ -3082,11 +3095,7 @@ Temporary Password: <strong>{####}</strong>
             },
             "POWERTOOLS_SERVICE_NAME": "ReadDelegatedAdmin",
             "SEND_ANONYMOUS_DATA": {
-              "Fn::FindInMap": [
-                "AnonymousData",
-                "SendAnonymousData",
-                "Data",
-              ],
+              "Ref": "SendAnonymousData",
             },
             "SOLUTION_VERSION": "v1.0.0",
             "STACK_ID": {
@@ -3316,11 +3325,7 @@ Temporary Password: <strong>{####}</strong>
             },
             "POWERTOOLS_SERVICE_NAME": "ScanDelegatedAdmin",
             "SEND_ANONYMOUS_DATA": {
-              "Fn::FindInMap": [
-                "AnonymousData",
-                "SendAnonymousData",
-                "Data",
-              ],
+              "Ref": "SendAnonymousData",
             },
             "SOLUTION_VERSION": "v1.0.0",
             "STACK_ID": {
@@ -3658,11 +3663,7 @@ Temporary Password: <strong>{####}</strong>
             "POWERTOOLS_LOGGER_LOG_EVENT": "True",
             "POWERTOOLS_SERVICE_NAME": "JobsApiHandler",
             "SEND_ANONYMOUS_DATA": {
-              "Fn::FindInMap": [
-                "AnonymousData",
-                "SendAnonymousData",
-                "Data",
-              ],
+              "Ref": "SendAnonymousData",
             },
             "SOLUTION_VERSION": "v1.0.0",
             "STACK_ID": {
@@ -4263,11 +4264,7 @@ Temporary Password: <strong>{####}</strong>
             },
             "POWERTOOLS_SERVICE_NAME": "FinishScanForResourceBasedPolicies",
             "SEND_ANONYMOUS_DATA": {
-              "Fn::FindInMap": [
-                "AnonymousData",
-                "SendAnonymousData",
-                "Data",
-              ],
+              "Ref": "SendAnonymousData",
             },
             "SOLUTION_VERSION": "v1.0.0",
             "STACK_ID": {
@@ -4509,11 +4506,7 @@ Temporary Password: <strong>{####}</strong>
             "POLICY_ITEM_TTL_IN_DAYS": "1",
             "POWERTOOLS_SERVICE_NAME": "ScanResourceBasedPolicyInSpokeAccount",
             "SEND_ANONYMOUS_DATA": {
-              "Fn::FindInMap": [
-                "AnonymousData",
-                "SendAnonymousData",
-                "Data",
-              ],
+              "Ref": "SendAnonymousData",
             },
             "SOLUTION_VERSION": "v1.0.0",
             "SPOKE_ROLE_NAME": {
@@ -4806,11 +4799,7 @@ Temporary Password: <strong>{####}</strong>
             "POLICY_ITEM_TTL_IN_DAYS": "1",
             "POWERTOOLS_SERVICE_NAME": "ScanResourceBasedPolicyInSpokeAccount",
             "SEND_ANONYMOUS_DATA": {
-              "Fn::FindInMap": [
-                "AnonymousData",
-                "SendAnonymousData",
-                "Data",
-              ],
+              "Ref": "SendAnonymousData",
             },
             "SOLUTION_VERSION": "v1.0.0",
             "SPOKE_ROLE_NAME": {
@@ -5106,11 +5095,7 @@ Temporary Password: <strong>{####}</strong>
             },
             "POWERTOOLS_SERVICE_NAME": "ReadPolicyExplorer",
             "SEND_ANONYMOUS_DATA": {
-              "Fn::FindInMap": [
-                "AnonymousData",
-                "SendAnonymousData",
-                "Data",
-              ],
+              "Ref": "SendAnonymousData",
             },
             "SOLUTION_VERSION": "v1.0.0",
             "STACK_ID": {
@@ -5560,11 +5545,7 @@ Temporary Password: <strong>{####}</strong>
               "Ref": "PolicyExplorerScanAllSpokeAccountsC4284EFB",
             },
             "SEND_ANONYMOUS_DATA": {
-              "Fn::FindInMap": [
-                "AnonymousData",
-                "SendAnonymousData",
-                "Data",
-              ],
+              "Ref": "SendAnonymousData",
             },
             "SOLUTION_VERSION": "v1.0.0",
             "STACK_ID": {
@@ -5931,11 +5912,7 @@ Temporary Password: <strong>{####}</strong>
             },
             "POWERTOOLS_SERVICE_NAME": "ScanPolicyExplorer",
             "SEND_ANONYMOUS_DATA": {
-              "Fn::FindInMap": [
-                "AnonymousData",
-                "SendAnonymousData",
-                "Data",
-              ],
+              "Ref": "SendAnonymousData",
             },
             "SOLUTION_VERSION": "v1.0.0",
             "SPOKE_ROLE_NAME": {
@@ -6163,11 +6140,7 @@ Temporary Password: <strong>{####}</strong>
             },
             "POWERTOOLS_SERVICE_NAME": "ReadResourceBasedPolicy",
             "SEND_ANONYMOUS_DATA": {
-              "Fn::FindInMap": [
-                "AnonymousData",
-                "SendAnonymousData",
-                "Data",
-              ],
+              "Ref": "SendAnonymousData",
             },
             "SOLUTION_VERSION": "v1.0.0",
             "STACK_ID": {
@@ -6446,11 +6419,7 @@ Temporary Password: <strong>{####}</strong>
             },
             "POWERTOOLS_SERVICE_NAME": "ReadTrustedAccess",
             "SEND_ANONYMOUS_DATA": {
-              "Fn::FindInMap": [
-                "AnonymousData",
-                "SendAnonymousData",
-                "Data",
-              ],
+              "Ref": "SendAnonymousData",
             },
             "SOLUTION_VERSION": "v1.0.0",
             "STACK_ID": {
@@ -6680,11 +6649,7 @@ Temporary Password: <strong>{####}</strong>
             },
             "POWERTOOLS_SERVICE_NAME": "ScanTrustedAccess",
             "SEND_ANONYMOUS_DATA": {
-              "Fn::FindInMap": [
-                "AnonymousData",
-                "SendAnonymousData",
-                "Data",
-              ],
+              "Ref": "SendAnonymousData",
             },
             "SOLUTION_VERSION": "v1.0.0",
             "STACK_ID": {
@@ -7249,11 +7214,7 @@ Temporary Password: <strong>{####}</strong>
             "LOG_LEVEL": "INFO",
             "POWERTOOLS_SERVICE_NAME": "DeployWebUI",
             "SEND_ANONYMOUS_DATA": {
-              "Fn::FindInMap": [
-                "AnonymousData",
-                "SendAnonymousData",
-                "Data",
-              ],
+              "Ref": "SendAnonymousData",
             },
             "SOLUTION_VERSION": "v1.0.0",
             "STACK_ID": {

@@ -93,6 +93,13 @@ export class AccountAssessmentHubStack extends cdk.Stack {
       type: 'String'
     });
 
+    const sendAnonymousData = new CfnParameter(this, 'SendAnonymousData', {
+      description: 'Send anonymized operational metrics to AWS.',
+      default: 'Yes',
+      allowedValues: ['Yes', 'No'],
+      type: 'String'
+    });
+
     const userEmail = new CfnParameter(this, 'UserEmail', {
       allowedPattern: '^(([^<>()\\[\\]\\\\.,;:\\s@"]+(\\.[^<>()\\[\\]\\\\.,;:\\s@"]+)*)|(".+"))@((\\[[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}])|(([a-zA-Z\\-0-9]+\\.)+[a-zA-Z]{2,}))$', // source: http://emailregex.com/
       description: 'Admin user will be created at deployment time. Provide an email address to create this initial Cognito user.',
@@ -130,6 +137,10 @@ export class AccountAssessmentHubStack extends cdk.Stack {
           {
             Label: {default: "Security Configuration"},
             Parameters: [allowListedIPRanges.logicalId]
+          },
+          {
+            Label: {default: "Operational Metrics Configuration"},
+            Parameters: [sendAnonymousData.logicalId]
           }
         ],
         ParameterLabels: {
@@ -147,13 +158,13 @@ export class AccountAssessmentHubStack extends cdk.Stack {
           },
           [allowListedIPRanges.logicalId]: {
             default: "Provide CIDR ranges that allow to console to access the API.",
+          },
+          [sendAnonymousData.logicalId]: {
+            default: "Send anonymized operational metrics to AWS.",
           }
         },
       },
     };
-
-    const mappings = new cdk.CfnMapping(this, "AnonymousData")
-    mappings.setValue("SendAnonymousData", "Data", 'Yes')
 
     const jobHistory = new JobHistoryComponent(this, 'JobHistory', {
       cognitoAuthenticationResources,
@@ -162,7 +173,7 @@ export class AccountAssessmentHubStack extends cdk.Stack {
       dynamoTtlInDays,
       solutionVersion: props.solutionVersion,
       stackId: this.stackId,
-      sendAnonymousData: mappings.findInMap("SendAnonymousData", "Data"),
+      sendAnonymousData: sendAnonymousData.valueAsString,
       namespace: namespace.valueAsString
     });
 
@@ -180,7 +191,7 @@ export class AccountAssessmentHubStack extends cdk.Stack {
         dynamoTtlInDays,
         solutionVersion: props.solutionVersion,
         stackId: this.stackId,
-        sendAnonymousData: mappings.findInMap("SendAnonymousData", "Data")
+        sendAnonymousData: sendAnonymousData.valueAsString
       },
       assetCode: lambdaZip,
       namespace,
@@ -201,7 +212,7 @@ export class AccountAssessmentHubStack extends cdk.Stack {
         dynamoTtlInDays,
         solutionVersion: props.solutionVersion,
         stackId: this.stackId,
-        sendAnonymousData: mappings.findInMap("SendAnonymousData", "Data")
+        sendAnonymousData: sendAnonymousData.valueAsString
       },
       assetCode: lambdaZip,
       namespace,
@@ -221,7 +232,7 @@ export class AccountAssessmentHubStack extends cdk.Stack {
         dynamoTtlInDays,
         solutionVersion: props.solutionVersion,
         stackId: this.stackId,
-        sendAnonymousData: mappings.findInMap("SendAnonymousData", "Data")
+        sendAnonymousData: sendAnonymousData.valueAsString
       },
       assetCode: lambdaZip,
       namespace,
@@ -246,7 +257,7 @@ export class AccountAssessmentHubStack extends cdk.Stack {
       assetCode: lambdaZip,
       solutionVersion: props.solutionVersion,
       stackId: this.stackId,
-      sendAnonymousData: mappings.findInMap("SendAnonymousData", "Data")
+      sendAnonymousData: sendAnonymousData.valueAsString
     })
     
     new PolicyExplorerScanComponent(this, 'PolicyExplorer', {
@@ -268,7 +279,7 @@ export class AccountAssessmentHubStack extends cdk.Stack {
         dynamoTtlInDays,
         solutionVersion: props.solutionVersion,
         stackId: this.stackId,
-        sendAnonymousData: mappings.findInMap("SendAnonymousData", "Data")
+        sendAnonymousData: sendAnonymousData.valueAsString
       },
       roleAssumedByApiGateway: new iam.ServicePrincipal('apigateway.amazonaws.com'),
       dynamoDbRoleName: 'DynamoDbRole',

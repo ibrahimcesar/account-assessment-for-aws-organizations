@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added pull request CI that runs the complete test suite and produces the deployable GitHub release artifacts.
 - Added a CloudFormation installer that retrieves a checksummed deployment payload from each GitHub release.
 - Added a release workflow that builds and attaches the installer, payload, and account templates automatically.
+- Added a deployment parameter for opting out of anonymized operational metrics.
 
 ### Changed
 

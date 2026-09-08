@@ -44,7 +44,8 @@ To deploy the hub:
 
 1. Download `account-assessment-for-aws-organizations-<VERSION>-installer.template` from the GitHub release.
 2. In the hub account and Region, open AWS CloudFormation and choose **Create stack**.
-3. Upload the installer template, provide the namespace and initial user email, and acknowledge named IAM resources.
+3. Upload the installer template, provide the namespace and initial user email, choose whether to send anonymized
+   operational metrics, and acknowledge named IAM resources.
 4. Create the stack.
 
 The installer downloads the matching payload from the same GitHub release, verifies its embedded SHA-256 checksum,

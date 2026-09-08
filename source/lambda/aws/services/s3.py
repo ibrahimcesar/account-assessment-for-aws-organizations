@@ -1,8 +1,12 @@
 #  Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #  SPDX-License-Identifier: Apache-2.0
 import json
+import mimetypes
+from io import BytesIO
 from os import getenv
+from pathlib import PurePosixPath
 from typing import Dict
+from zipfile import ZipFile
 
 from aws_lambda_powertools import Logger
 from botocore.exceptions import ClientError
@@ -101,6 +105,31 @@ class S3:
         except ClientError as err:
             self.logger.error(str(err))
             raise
+
+    def extract_zip_archive(self, source_bucket_name: str, source_key: str, target_bucket_name: str,
+                            excluded_files: set[str] | None = None):
+        excluded_files = excluded_files or set()
+        response = self.s3_client.get_object(Bucket=source_bucket_name, Key=source_key)
+        archive_bytes = response['Body'].read()
+
+        with ZipFile(BytesIO(archive_bytes)) as archive:
+            for member in archive.infolist():
+                member_path = PurePosixPath(member.filename)
+                if member.is_dir() or member_path.name in excluded_files:
+                    continue
+                if member_path.is_absolute() or '..' in member_path.parts:
+                    raise ValueError(f"Unsafe path in WebUI archive: {member.filename}")
+
+                content_type, _ = mimetypes.guess_type(member.filename)
+                put_object_args = {
+                    "Bucket": target_bucket_name,
+                    "Key": member_path.as_posix(),
+                    "Body": archive.read(member),
+                }
+                if content_type:
+                    put_object_args["ContentType"] = content_type
+
+                self.s3_client.put_object(**put_object_args)
 
 
 class Glacier:

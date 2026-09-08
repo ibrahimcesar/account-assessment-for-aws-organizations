@@ -1,20 +1,24 @@
 {
   "name": "@amzn/account-assessment-for-aws-organizations",
   "private": "true",
+  "engines": {
+    "node": ">=22 <23"
+  },
   "scripts": {
     "cleanup": "./node_modules/.bin/tsc --build ./ --clean && rm -rf node_modules && rm -f package-lock.json",
     "cleanup:tsc": "./node_modules/.bin/tsc --build ./ --clean",
     "build": "./node_modules/.bin/tsc",
     "watch": "./node_modules/.bin/tsc -w",
-    "test": "NODE_OPTIONS='--max-old-space-size=4096' ./node_modules/.bin/jest -u --coverage",
+    "test": "NODE_OPTIONS='--max-old-space-size=4096' ./node_modules/.bin/jest --coverage",
+    "test:update": "NODE_OPTIONS='--max-old-space-size=4096' ./node_modules/.bin/jest -u --coverage",
     "license-report": "license-report --output=csv --delimiter=' under ' --fields=name --fields=licenseType",
     "cdk": "./node_modules/.bin/cdk",
-    "buildLambdaAndDeploy": "cd ../../deployment && ./build-lambdas.sh && cd ../source/infra && cdk deploy account-assessment-for-aws-organizations-hub",
-    "deploy": "SOLUTION_TRADEMARKEDNAME=account-assessment-for-aws-organizations cdk deploy account-assessment-for-aws-organizations-hub",
-    "deploySpoke": "SOLUTION_TRADEMARKEDNAME=account-assessment-for-aws-organizations cdk deploy account-assessment-for-aws-organizations-spoke",
-    "deployOrgMgmt": "SOLUTION_TRADEMARKEDNAME=account-assessment-for-aws-organizations cdk deploy account-assessment-for-aws-organizations-org-management",
-    "synth": "cdk synth",
-    "bootstrap": "cdk bootstrap"
+    "buildLambdaAndDeploy": "../../deployment/cdk.sh deploy account-assessment-for-aws-organizations-hub",
+    "deploy": "../../deployment/cdk.sh deploy account-assessment-for-aws-organizations-hub",
+    "deploySpoke": "../../deployment/cdk.sh deploy account-assessment-for-aws-organizations-spoke",
+    "deployOrgMgmt": "../../deployment/cdk.sh deploy account-assessment-for-aws-organizations-org-management",
+    "synth": "../../deployment/cdk.sh synth",
+    "bootstrap": "../../deployment/cdk.sh bootstrap"
   },
   "devDependencies": {
     "@aws-cdk/assert": "2.68.0",

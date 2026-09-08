@@ -8,7 +8,44 @@ aws-lambda-powertools = "~3.13.0"
 aws-xray-sdk = "~2.14.0"
 botocore = "~1.38.0"
 boto3 = "~1.38.0"
-boto3-stubs = { extras = ["all"], version = "~1.38.0" }
+boto3-stubs = { extras = [
+    "account",
+    "acm-pca",
+    "apigateway",
+    "backup",
+    "cloudformation",
+    "codeartifact",
+    "codebuild",
+    "config",
+    "dynamodb",
+    "ec2",
+    "ecr",
+    "efs",
+    "events",
+    "glacier",
+    "glue",
+    "iam",
+    "iot",
+    "kms",
+    "lambda",
+    "lexv2-models",
+    "mediastore",
+    "opensearch",
+    "organizations",
+    "ram",
+    "redshift-serverless",
+    "s3",
+    "schemas",
+    "secretsmanager",
+    "serverlessrepo",
+    "sesv2",
+    "sns",
+    "sqs",
+    "ssm-contacts",
+    "ssm-incidents",
+    "stepfunctions",
+    "sts",
+], version = "~1.38.0" }
 cfnresponse = "~1.1.5"
 requests = "~2.33.0"
 pyparsing = "~3.2.3"

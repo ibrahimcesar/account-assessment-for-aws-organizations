@@ -61,15 +61,37 @@ class WebUIDeployer:
     def _copy_ui_files_to_console_bucket(self, config):
         webui_bucket_name = config.get("WebUIBucket")
         source_bucket_name = config.get("SrcBucket")
-        key_prefix = config.get("SrcPath")
+        source_path = config.get("SrcPath")
+        source_type = config.get("SourceType", "prefix")
 
-        config_json = self.s3.read_json_file(source_bucket_name, key_prefix + 'webui-manifest.json')
+        if source_type == "archive":
+            self.logger.info(
+                "Deploying WebUI archive from bucket "
+                + source_bucket_name
+                + ", key "
+                + source_path
+                + " to "
+                + webui_bucket_name
+            )
+            self.s3.extract_zip_archive(
+                source_bucket_name,
+                source_path,
+                webui_bucket_name,
+                excluded_files={"webui-manifest.json"},
+            )
+            self.logger.info("WebUI assets extracted successfully")
+            return
+
+        if source_type != "prefix":
+            raise ValueError(f"Unsupported WebUI source type: {source_type}")
+
+        config_json = self.s3.read_json_file(source_bucket_name, source_path + 'webui-manifest.json')
         web_ui_file_names = config_json["files"]
 
         self.logger.info(
-            "Deploying files from bucket " + source_bucket_name + ", path " + key_prefix + " to " + webui_bucket_name)
+            "Deploying files from bucket " + source_bucket_name + ", path " + source_path + " to " + webui_bucket_name)
 
         for file_name in web_ui_file_names:
-            self.s3.copy_file(source_bucket_name, webui_bucket_name, key_prefix, '', file_name)
+            self.s3.copy_file(source_bucket_name, webui_bucket_name, source_path, '', file_name)
 
         self.logger.info("WebUI assets copied successfully")

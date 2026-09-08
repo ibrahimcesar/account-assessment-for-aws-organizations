@@ -1,130 +1,90 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
-#
 
-#
-# This script runs all tests for the root CDK project, as well as any microservices, Lambda functions, or dependency
-# source code packages. These include unit tests, integration tests, and snapshot tests.
-#
-# This script is called by the ../initialize-repo.sh file and the buildspec.yml file. It is important that this script
-# be tested and validated to ensure that all available test fixtures are run.
-#
-# The if/then blocks are for error handling. They will cause the script to stop executing if an error is thrown from the
-# node process running the test case(s). Removing them or not using them for additional calls with result in the
-# script continuing to execute despite an error being thrown.
+set -Eeuo pipefail
+[[ "${DEBUG:-false}" == "true" ]] && set -x
 
-[ "$DEBUG" == 'true' ] && set -x
-set -e
+source_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+repo_root="$(cd "$source_dir/.." && pwd -P)"
+infra_dir="$source_dir/infra"
+webui_dir="$source_dir/webui"
+lambda_dir="$source_dir/lambda"
+solution_helper_dir="$repo_root/deployment/cdk-solution-helper"
+lambda_asset_dir="$repo_root/deployment/regional-s3-assets"
+lambda_asset="$lambda_asset_dir/lambda.zip"
+created_mock_asset=false
 
-run_python_tests() {
-	local component_path=$1
+export NPM_CONFIG_USERCONFIG="$repo_root/.npmrc"
+export POETRY_VIRTUALENVS_IN_PROJECT=false
+export POETRY_VIRTUALENVS_PATH="${POETRY_VIRTUALENVS_PATH:-${TMPDIR:-/tmp}/account-assessment-poetry-envs}"
 
-	echo "------------------------------------------------------------------------------"
-	echo "[Test] Run python unit test with coverage for $component_path"
-	echo "------------------------------------------------------------------------------"
-	cd $component_path
-
-  # Check if poetry is available in the shell
-  if command -v poetry >/dev/null 2>&1; then
-    POETRY_COMMAND="poetry"
-  elif [ -n "$POETRY_HOME" ] && [ -x "$POETRY_HOME/bin/poetry" ]; then
-    POETRY_COMMAND="$POETRY_HOME/bin/poetry"
-  else
-    echo "Poetry is not available. Aborting script." >&2
-    exit 1
+cleanup() {
+  if [[ "$created_mock_asset" == "true" ]]; then
+    rm -f "$lambda_asset"
   fi
 
-  echo "Installing python packages"
-
-  "$POETRY_COMMAND" install
-  # Activate the virtual environment, so pytest is available below
-  source $("$POETRY_COMMAND" env info --path)/bin/activate
-
-	coverage_report_path="$source_dir/lambda/coverage.xml"
-	echo "coverage report path set to $coverage_report_path"
-
-	# Use -vv for debugging
-	python3 -m pytest tests --cov "$component_path" --cov-config="$component_path/.coveragerc" --cov-report=term-missing --cov-report "xml:$coverage_report_path" --cov-report "html:$component_path/coverage" -sv -ra -q -p tests.plugins.env_vars
-
-    # The pytest --cov with its parameters and .coveragerc generates a xml cov-report with `coverage/sources` list
-    # with absolute path for the source directories. To avoid dependencies of tools (such as SonarQube) on different
-    # absolute paths for source directories, this substitution is used to convert each absolute source directory
-    # path to the corresponding project relative path. The $source_dir holds the absolute path for source directory.
-    sed -i -e "s,<source>$source_dir,<source>source,g" $coverage_report_path
-
-  deactivate
-
-	if [ "${CLEAN:-true}" = "true" ]; then
-		rm .coverage
-		rm -fr .pytest_cache
-		rm -fr __pycache__ test/__pycache__
-	fi
-}
-
-run_webui_tests() {
-  	local component_path=$1
-
-    echo "------------------------------------------------------------------------------"
-    echo "[Test] Run javascript unit test with coverage for $component_path"
-    echo "------------------------------------------------------------------------------"
-
- 	cd $component_path
-	npm install
-  npm run test:ci # run test:ci rather than test to avoid the pipeline getting stuck in watch mode
-
-  # Capture the exit status of the npm test command
-  exit_status=$?
-
-  if [ $exit_status -ne 0 ]; then
-    echo "WebUI tests failed. Exiting with status code 1."
-    exit 1
+  if [[ "${CLEAN:-true}" == "true" ]]; then
+    rm -rf \
+      "$infra_dir/coverage" \
+      "$solution_helper_dir/coverage" \
+      "$webui_dir/coverage" \
+      "$lambda_dir/.coverage" \
+      "$lambda_dir/.pytest_cache" \
+      "$lambda_dir/coverage" \
+      "$lambda_dir/coverage.xml"
+    find "$lambda_dir" -type d -name '__pycache__' -prune -exec rm -rf {} +
   fi
 }
+trap cleanup EXIT
 
-run_cdk_project_tests() {
-	local component_path=$1
-	echo "------------------------------------------------------------------------------"
-	echo "[Test] Run CDK project tests in $component_path"
-	echo "------------------------------------------------------------------------------"
-  cd $component_path
-
-	# install and build for unit testing
-	npm install
-
-	## Option to suppress the Override Warning messages while synthesizing using CDK
-	# export overrideWarningsEnabled=false
-
-	# run unit tests
-	npm run test
-
-  # Capture the exit status of the npm test command
-  exit_status=$?
-
-  if [ $exit_status -ne 0 ]; then
-    echo "CDK tests failed. Exiting with status code 1."
+for command_name in npm poetry python3; do
+  if ! command -v "$command_name" >/dev/null 2>&1; then
+    echo "Required command not found: $command_name" >&2
     exit 1
   fi
-}
+done
 
-# Run unit tests
-echo "Running unit tests"
+python_version="$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')"
+if [[ "$python_version" != "3.12" ]]; then
+  echo "Python 3.12 is required to run the Lambda tests; found $python_version." >&2
+  exit 1
+fi
 
-# Get reference for source folder
-source_dir="$(cd $PWD/../source; pwd -P)"
+if [[ ! -f "$lambda_asset" ]]; then
+  mkdir -p "$lambda_asset_dir"
+  touch "$lambda_asset"
+  created_mock_asset=true
+fi
 
-# Test the CDK project
-## Create mock zip file for cdk to find needed asset
-mkdir -p ../deployment/regional-s3-assets/
-touch ../deployment/regional-s3-assets/lambda.zip
-run_cdk_project_tests $source_dir/infra || true
+echo "Running infrastructure tests"
+npm --prefix "$infra_dir" ci
+npm --prefix "$infra_dir" test
 
-## Test the WebUI project
-run_webui_tests $source_dir/webui || true
+echo "Running CDK solution helper tests"
+npm --prefix "$solution_helper_dir" ci
+npm --prefix "$solution_helper_dir" test
 
-# Test the attached Lambda functions
-run_python_tests $source_dir/lambda
+echo "Running WebUI tests"
+npm --prefix "$webui_dir" ci
+npm --prefix "$webui_dir" run test:ci
 
-# Return to the source/ level
-cd $source_dir
+echo "Running Lambda tests"
+(
+  cd "$lambda_dir"
+  poetry env use python3
+  poetry sync
+  poetry run python -m pytest \
+    tests \
+    --cov "$lambda_dir" \
+    --cov-config "$lambda_dir/.coveragerc" \
+    --cov-report term-missing \
+    --cov-report "xml:$lambda_dir/coverage.xml" \
+    --cov-report "html:$lambda_dir/coverage" \
+    -ra \
+    -q \
+    -p tests.plugins.env_vars
+)
+
+echo "All tests passed."

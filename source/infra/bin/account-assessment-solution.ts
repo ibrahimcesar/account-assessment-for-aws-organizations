@@ -3,6 +3,8 @@
 
 import * as cdk from 'aws-cdk-lib';
 import {DefaultStackSynthesizer, IAspect} from 'aws-cdk-lib';
+import {existsSync} from 'fs';
+import * as path from 'path';
 import 'source-map-support/register';
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import {AccountAssessmentHubStack, AccountAssessmentHubStackProps} from "../lib/account-assessment-hub-stack";
@@ -12,24 +14,50 @@ import {IConstruct} from "constructs";
 import {CfnPolicy} from "aws-cdk-lib/aws-iam";
 import {addCfnSuppressRules} from "@aws-solutions-constructs/core";
 
-function getEnvElement(envVariableName: string): string {
-  const value: string | undefined = process.env[envVariableName];
-  if (value == undefined) throw new Error(`Missing required environment variable ${envVariableName}`)
+const app = new cdk.App();
+
+function getSetting(envVariableName: string, contextName: string, fallback?: string): string {
+  const value = process.env[envVariableName] ?? app.node.tryGetContext(contextName) ?? fallback;
+  if (value == undefined || value === '') {
+    throw new Error(`Missing required setting ${envVariableName} or CDK context ${contextName}`);
+  }
   return value;
 }
 
-const SOLUTION_VERSION = getEnvElement('SOLUTION_VERSION');
-const SOLUTION_NAME = getEnvElement('SOLUTION_NAME');
-const SOLUTION_ID = process.env['SOLUTION_ID'] || 'SO0217';
-const SOLUTION_BUCKET_NAME = getEnvElement('DIST_OUTPUT_BUCKET');
-const SOLUTION_TMN = getEnvElement('SOLUTION_TRADEMARKEDNAME');
+const SOLUTION_VERSION = getSetting('SOLUTION_VERSION', 'solution_version');
+const SOLUTION_NAME = getSetting('SOLUTION_NAME', 'solution_name');
+const SOLUTION_ID = getSetting('SOLUTION_ID', 'solution_id', 'SO0217');
+const SOLUTION_TMN = getSetting(
+  'SOLUTION_TRADEMARKEDNAME',
+  'solution_trademarked_name',
+  'account-assessment-for-aws-organizations'
+);
 const SOLUTION_PROVIDER = 'AWS Solution Development';
+const ASSET_MODE = getSetting('ASSET_MODE', 'asset_mode', 'local').toLowerCase();
+
+if (!['local', 'distribution'].includes(ASSET_MODE)) {
+  throw new Error(`Unsupported ASSET_MODE '${ASSET_MODE}'. Expected 'local' or 'distribution'.`);
+}
+
+const solutionBucketName = ASSET_MODE === 'distribution'
+  ? getSetting('DIST_OUTPUT_BUCKET', 'distribution_bucket')
+  : undefined;
+const localWebUiAssetPath = ASSET_MODE === 'local'
+  ? path.resolve(__dirname, '../../../deployment/regional-s3-assets/webui')
+  : undefined;
+
+if (localWebUiAssetPath && !existsSync(localWebUiAssetPath)) {
+  throw new Error(
+    `Local WebUI asset not found at ${localWebUiAssetPath}. Run deployment/build-assets.sh before CDK.`
+  );
+}
 
 const accountAssessmentHubStackProperties: AccountAssessmentHubStackProps = {
   solutionId: SOLUTION_ID,
   solutionTradeMarkName: SOLUTION_TMN,
   solutionProvider: SOLUTION_PROVIDER,
-  solutionBucketName: SOLUTION_BUCKET_NAME,
+  solutionBucketName,
+  localWebUiAssetPath,
   solutionName: SOLUTION_NAME,
   solutionVersion: SOLUTION_VERSION,
   description: '(' + SOLUTION_ID + ') - The AWS CloudFormation hub template' +
@@ -38,8 +66,6 @@ const accountAssessmentHubStackProperties: AccountAssessmentHubStackProps = {
     generateBootstrapVersionRule: false
   })
 }
-
-const app = new cdk.App();
 
 new AccountAssessmentHubStack(
   app,
@@ -93,4 +119,3 @@ class SuppressCfnNagW12ForLambdaFunctions implements IAspect {
 cdk.Aspects.of(app).add(new SuppressCfnNagW12ForLambdaFunctions());
 
 app.synth();
-

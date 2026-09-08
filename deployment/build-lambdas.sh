@@ -1,79 +1,83 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 
-[ "$DEBUG" == 'true' ] && set -x
-deployment_dir="$PWD"
-staging_dist_dir="$deployment_dir/staging"
-build_dist_dir="$deployment_dir/regional-s3-assets"
-source_dir="$deployment_dir/../source"
-lambda_artifact_name="lambda" # has to match cdk-solution-helper/parameterize-s3-paths-to-lambda-code.ts
+set -Eeuo pipefail
+[[ "${DEBUG:-false}" == "true" ]] && set -x
 
-build_python_artifacts() {
-  echo "===================================="
-  echo "[Build] Python sources"
-  echo "===================================="
-  cd $staging_dist_dir
-  rm -fr $lambda_artifact_name
+deployment_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+repo_root="$(cd "$deployment_dir/.." && pwd -P)"
+lambda_source_dir="$repo_root/source/lambda"
+build_output_dir="${BUILD_OUTPUT_DIR:-$deployment_dir/regional-s3-assets}"
+staging_dir="$(mktemp -d "${TMPDIR:-/tmp}/account-assessment-lambda.XXXXXX")"
+package_dir="$staging_dir/lambda"
+requirements_file="$staging_dir/requirements.txt"
+lambda_zip="$build_output_dir/lambda.zip"
 
-  echo "Copy $source_dir/$lambda_artifact_name to $staging_dist_dir"
-  cp -R "$source_dir/$lambda_artifact_name" "$staging_dist_dir"
-
-  cd $lambda_artifact_name
-  rm -fr .venv
-  rm -fr .venv-test
-
-  # Check if poetry is available in the shell
-  if command -v poetry >/dev/null 2>&1; then
-    POETRY_COMMAND="poetry"
-  elif [ -n "$POETRY_HOME" ] && [ -x "$POETRY_HOME/bin/poetry" ]; then
-    POETRY_COMMAND="$POETRY_HOME/bin/poetry"
-  else
-    echo "Poetry is not available. Aborting script." >&2
-    exit 1
-  fi
-
-  # Try to export the requirements.txt file
-  if "$POETRY_COMMAND" export --without dev -f requirements.txt --output requirements.txt --without-hashes; then
-    # If the export was successful, install the requirements
-    pip3 install -r requirements.txt --target .
-  else
-    echo "Failed to generate requirements.txt file. Aborting script." >&2
-    exit 1
-  fi
-
-  pip3 install -U pip-licenses
-  pip-licenses --from=mixed --order=license
-  rm -fr __pycache__
-  rm -fr tests
-  rm -rf requirements.txt .coveragerc coverage.xml LICENSE
+cleanup() {
+  rm -rf "$staging_dir"
 }
+trap cleanup EXIT
 
-package_lambda_dir()
-{
-  cd $staging_dist_dir/$lambda_artifact_name
-  echo "Zipping following packages"
-  pwd
-  ls -ltr
-  echo "zip -qr9 $staging_dist_dir/$lambda_artifact_name.zip ."
-  zip -qr9 $staging_dist_dir/$lambda_artifact_name.zip .
-  cd $staging_dist_dir
-
-  if test -f $lambda_artifact_name.zip; then
-    # Copy the zipped artifact from /staging to /regional-s3-assets
-    echo "cp $lambda_artifact_name.zip $build_dist_dir"
-    cp $lambda_artifact_name.zip $build_dist_dir
-    cd ..
-  else
-    echo "ERROR: $lambda_artifact_name.zip not found"
+for command_name in poetry python3; do
+  if ! command -v "$command_name" >/dev/null 2>&1; then
+    echo "Required command not found: $command_name" >&2
     exit 1
   fi
-}
+done
 
-echo "Create staging directory $staging_dist_dir"
-mkdir -p "$staging_dist_dir"
-build_python_artifacts
-package_lambda_dir
-echo "Finished build-lambdas.sh"
+python_version="$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')"
+if [[ "$python_version" != "3.12" ]]; then
+  echo "Python 3.12 is required to package the Lambda functions; found $python_version." >&2
+  exit 1
+fi
+
+if [[ "$(uname -s)" != "Linux" || "$(uname -m)" != "x86_64" ]]; then
+  echo "Lambda assets must be built on Linux/x86_64. Run 'make build' to use the pinned container." >&2
+  exit 1
+fi
+
+echo "Exporting locked Lambda dependencies"
+(
+  cd "$lambda_source_dir"
+  poetry export \
+    --only main \
+    --format requirements.txt \
+    --output "$requirements_file" \
+    --without-hashes
+)
+
+echo "Staging Lambda source"
+mkdir -p "$package_dir" "$build_output_dir"
+cp -R "$lambda_source_dir/." "$package_dir/"
+rm -rf \
+  "$package_dir/.venv" \
+  "$package_dir/.venv-test" \
+  "$package_dir/coverage" \
+  "$package_dir/tests"
+rm -f \
+  "$package_dir/.coveragerc" \
+  "$package_dir/coverage.xml" \
+  "$package_dir/poetry.lock" \
+  "$package_dir/pyproject.toml"
+
+echo "Installing Lambda runtime dependencies"
+python3 -m pip install \
+  --requirement "$requirements_file" \
+  --target "$package_dir" \
+  --upgrade \
+  --no-compile
+
+find "$package_dir" -type d -name '__pycache__' -prune -exec rm -rf {} +
+find "$package_dir" -type f \( -name '*.pyc' -o -name '*.pyo' \) -delete
+
+echo "Creating deterministic Lambda archive"
+rm -f "$lambda_zip"
+python3 "$deployment_dir/create-zip.py" \
+  "$package_dir" \
+  "$lambda_zip" \
+  --max-uncompressed-mib 250
+
+echo "Built $lambda_zip"

@@ -25,7 +25,8 @@ export interface AccountAssessmentHubStackProps extends cdk.StackProps {
   solutionId: string;
   solutionTradeMarkName: string;
   solutionProvider: string;
-  solutionBucketName: string;
+  solutionBucketName?: string;
+  localWebUiAssetPath?: string;
   solutionName: string;
   solutionVersion: string;
 }
@@ -242,7 +243,10 @@ export class AccountAssessmentHubStack extends cdk.Stack {
       cloudFront: cloudFrontToS3.cloudFrontWebDistribution,
       auth: cognitoAuthenticationResources,
       deploymentSourceBucketName: props.solutionBucketName,
-      deploymentSourcePath: `${this.props.solutionTradeMarkName}/${this.props.solutionVersion}/webui/`,
+      deploymentSourcePath: props.solutionBucketName
+        ? `${this.props.solutionTradeMarkName}/${this.props.solutionVersion}/webui/`
+        : undefined,
+      localWebUiAssetPath: props.localWebUiAssetPath,
       assetCode: lambdaZip,
       solutionVersion: props.solutionVersion,
       stackId: this.stackId,

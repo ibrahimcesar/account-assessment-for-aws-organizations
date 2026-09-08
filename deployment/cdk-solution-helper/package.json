@@ -8,6 +8,9 @@
     "url": "https://aws.amazon.com/solutions",
     "organization": true
   },
+  "engines": {
+    "node": ">=22 <23"
+  },
   "devDependencies": {
     "@types/node": "^20.8.7",
     "@types/jest": "^29.5.6",

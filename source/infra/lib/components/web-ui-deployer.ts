@@ -9,6 +9,7 @@ import {AssetCode, Runtime} from "aws-cdk-lib/aws-lambda";
 import {CognitoAuthenticationResources} from "./cognito-authenticator";
 import {Bucket, IBucket} from "aws-cdk-lib/aws-s3";
 import {Distribution} from "aws-cdk-lib/aws-cloudfront";
+import {Asset} from "aws-cdk-lib/aws-s3-assets";
 
 type WebUIDeployerProps = {
   region: string,
@@ -17,8 +18,9 @@ type WebUIDeployerProps = {
   deploymentBucket: IBucket,
   cloudFront: Distribution,
   auth: CognitoAuthenticationResources,
-  deploymentSourceBucketName: string
-  deploymentSourcePath: string,
+  deploymentSourceBucketName?: string,
+  deploymentSourcePath?: string,
+  localWebUiAssetPath?: string,
   assetCode: AssetCode,
   solutionVersion: string,
   stackId: string,
@@ -36,6 +38,7 @@ export class WebUIDeployer extends Construct {
     auth,
     deploymentSourceBucketName,
     deploymentSourcePath,
+    localWebUiAssetPath,
     assetCode,
     solutionVersion,
     stackId,
@@ -43,9 +46,34 @@ export class WebUIDeployer extends Construct {
   }: WebUIDeployerProps) {
     super(scope, id);
 
-    const deploymentSourceBucket = Bucket.fromBucketAttributes(this, 'SolutionRegionalBucket', {
-      bucketName: deploymentSourceBucketName + '-' + region
-    });
+    let deploymentSourceBucket: IBucket;
+    let sourceBucketName: string;
+    let sourcePath: string;
+    let sourceType: 'archive' | 'prefix';
+    let sourceFingerprint: string;
+
+    if (localWebUiAssetPath) {
+      const webUiAsset = new Asset(this, 'LocalWebUIAsset', {
+        path: localWebUiAssetPath
+      });
+      deploymentSourceBucket = webUiAsset.bucket;
+      sourceBucketName = webUiAsset.s3BucketName;
+      sourcePath = webUiAsset.s3ObjectKey;
+      sourceType = 'archive';
+      sourceFingerprint = webUiAsset.assetHash;
+    } else if (deploymentSourceBucketName && deploymentSourcePath) {
+      deploymentSourceBucket = Bucket.fromBucketAttributes(this, 'SolutionRegionalBucket', {
+        bucketName: deploymentSourceBucketName + '-' + region
+      });
+      sourceBucketName = deploymentSourceBucket.bucketName;
+      sourcePath = deploymentSourcePath;
+      sourceType = 'prefix';
+      sourceFingerprint = solutionVersion;
+    } else {
+      throw new Error(
+        'WebUI deployment requires either localWebUiAssetPath or distribution bucket configuration.'
+      );
+    }
 
     const webuiAmplifyConfig = {
       API: {
@@ -74,8 +102,9 @@ export class WebUIDeployer extends Construct {
       OrgId: orgId
     };
     const webUiDeploymentConfig = {
-      SrcBucket: deploymentSourceBucket.bucketName,
-      SrcPath: deploymentSourcePath, // Path within the SrcBucket that holds the files to copy
+      SourceType: sourceType,
+      SrcBucket: sourceBucketName,
+      SrcPath: sourcePath,
       WebUIBucket: deploymentBucket.bucketName,
       awsExports: webuiAmplifyConfig
     };
@@ -103,6 +132,7 @@ export class WebUIDeployer extends Construct {
       serviceTimeout: cdk.Duration.minutes(5),
       properties:{
         SolutionVersion: solutionVersion,
+        SourceFingerprint: sourceFingerprint
       }
     });
   }

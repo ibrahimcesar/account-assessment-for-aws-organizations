@@ -1,7 +1,9 @@
 #  Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #  SPDX-License-Identifier: Apache-2.0
 import json
+from io import BytesIO
 from os import environ
+from zipfile import ZIP_DEFLATED, ZipFile
 
 import pytest
 from moto import mock_aws
@@ -80,3 +82,38 @@ def describe_webui_deploy():
             # ACT
             lambda_handler({"RequestType": "Update", "ResourceProperties": config}, {})
 
+    @mock_aws
+    def test_webui_archive_is_extracted_and_config_is_generated():
+        # ARRANGE
+        archive_config = {
+            **config,
+            "SourceType": "archive",
+            "SrcPath": "assets/webui.zip",
+            "awsExports": {"Auth": {"region": "us-east-1"}},
+        }
+        environ['CONFIG'] = json.dumps(archive_config)
+        web_ui_deployer = WebUIDeployer()
+        s3_resource: S3ServiceResource = Boto3Session('s3').get_resource()
+
+        source_bucket = s3_resource.create_bucket(Bucket=archive_config['SrcBucket'])
+        webui_bucket = s3_resource.create_bucket(Bucket=archive_config['WebUIBucket'])
+
+        archive_buffer = BytesIO()
+        with ZipFile(archive_buffer, "w", compression=ZIP_DEFLATED) as archive:
+            archive.writestr("index.html", "<html></html>")
+            archive.writestr("assets/app.js", "console.log('ready')")
+            archive.writestr("webui-manifest.json", "{}")
+        source_bucket.put_object(
+            Key=archive_config['SrcPath'],
+            Body=archive_buffer.getvalue(),
+        )
+
+        # ACT
+        web_ui_deployer.deploy()
+
+        # ASSERT
+        keys = [object_summary.key for object_summary in webui_bucket.objects.all()]
+        assert "index.html" in keys
+        assert "assets/app.js" in keys
+        assert "aws-exports-generated.json" in keys
+        assert "webui-manifest.json" not in keys

@@ -7,6 +7,9 @@
         "url": "https://aws.amazon.com/solutions",
         "organization": true
     },
+    "engines": {
+        "node": ">=22 <23"
+    },
     "private": true,
     "description": "Create a manifest.json that lists all files to include in a WebUI deployment",
     "main": "app.js",

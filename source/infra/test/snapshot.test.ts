@@ -6,7 +6,8 @@ import {App} from 'aws-cdk-lib';
 import {AccountAssessmentHubStack, AccountAssessmentHubStackProps} from "../lib/account-assessment-hub-stack";
 import {Template} from "aws-cdk-lib/assertions";
 import {existsSync} from "fs";
-import {mkdir} from "node:fs";
+import {mkdirSync, rmSync, writeFileSync} from "node:fs";
+import * as path from "node:path";
 import {OrgManagementAccountStack} from "../lib/org-management-account-stack";
 import {SpokeStack} from "../lib/account-assessment-spoke-stack";
 
@@ -20,6 +21,26 @@ export const props: AccountAssessmentHubStackProps = {
   solutionVersion: 'v1.0.0'
 };
 
+const lambdaAssetPath = path.resolve(
+  __dirname,
+  '../../../deployment/regional-s3-assets/lambda.zip'
+);
+let createdMockLambdaAsset = false;
+
+beforeAll(() => {
+  if (!existsSync(lambdaAssetPath)) {
+    mkdirSync(path.dirname(lambdaAssetPath), {recursive: true});
+    writeFileSync(lambdaAssetPath, '');
+    createdMockLambdaAsset = true;
+  }
+});
+
+afterAll(() => {
+  if (createdMockLambdaAsset) {
+    rmSync(lambdaAssetPath, {force: true});
+  }
+});
+
 /*
  * Regression test.
  * Compares the synthesized cfn template from the cdk project with the snapshot in git.
@@ -29,13 +50,6 @@ export const props: AccountAssessmentHubStackProps = {
 test('hub stack synth doesnt crash', () => {
   // GIVEN
   const app = new App();
-
-  const uiBuildOutputDir = `${__dirname}/../webui/build`;
-  if (!existsSync(uiBuildOutputDir)) {
-    mkdir(uiBuildOutputDir, {recursive: true}, (err) => {
-      if (err) throw err;
-    });
-  }
 
   // WHEN
   const stack = new AccountAssessmentHubStack(

@@ -2,8 +2,10 @@
   "app": "npx ts-node bin/account-assessment-solution.ts",
   "context": {
     "solution_id": "SO0217",
-    "solution_name": "account-assessment-for-aws-organizations",
-    "solution_version": "%%VERSION%%",
+    "solution_name": "Account Assessment for AWS Organizations",
+    "solution_trademarked_name": "account-assessment-for-aws-organizations",
+    "solution_version": "v1.1.13",
+    "asset_mode": "local",
     "@aws-cdk/aws-s3:serverAccessLogsUseBucketPolicy": true
 
   },

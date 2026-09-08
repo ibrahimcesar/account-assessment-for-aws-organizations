@@ -7208,7 +7208,7 @@ Temporary Password: <strong>{####}</strong>
               "Fn::Join": [
                 "",
                 [
-                  "{"SrcBucket":"solutions-",
+                  "{"SourceType":"prefix","SrcBucket":"solutions-",
                   {
                     "Ref": "AWS::Region",
                   },
@@ -7443,6 +7443,7 @@ Temporary Password: <strong>{####}</strong>
           ],
         },
         "SolutionVersion": "v1.0.0",
+        "SourceFingerprint": "v1.0.0",
       },
       "Type": "AWS::CloudFormation::CustomResource",
       "UpdateReplacePolicy": "Delete",

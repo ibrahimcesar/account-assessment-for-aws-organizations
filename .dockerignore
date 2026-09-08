@@ -1,0 +1,15 @@
+.git
+.idea
+.vscode
+**/.coverage
+**/.pytest_cache
+**/.venv
+**/__pycache__
+**/build
+**/cdk.out
+**/coverage
+**/dist
+**/global-s3-assets
+**/node_modules
+**/regional-s3-assets
+**/staging

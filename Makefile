@@ -50,8 +50,7 @@ synth: image
 	$(DOCKER_RUN) ./deployment/cdk.sh synth '*' --output /workspace/deployment/cdk.out
 
 package: image
-	@test -n "$(VERSION)" || (echo "Usage: make package VERSION=<release-version>"; exit 2)
-	$(DOCKER_RUN) ./deployment/package-release.sh "$(VERSION)"
+	$(DOCKER_RUN) ./deployment/package-release.sh $(VERSION)
 
 cdk: image
 	@test -n "$(CDK_ARGS)" || (echo "Usage: make cdk CDK_ARGS='<cdk command and arguments>'"; exit 2)
@@ -62,9 +61,8 @@ deploy: image
 	$(DOCKER_RUN_AWS) ./deployment/cdk.sh deploy "$(STACK)" $(CDK_ARGS)
 
 distribution: image
-	@test -n "$(DIST_BUCKET)" || (echo "Usage: make distribution DIST_BUCKET=<bucket-base-name> VERSION=<version>"; exit 2)
-	@test -n "$(VERSION)" || (echo "Usage: make distribution DIST_BUCKET=<bucket-base-name> VERSION=<version>"; exit 2)
-	$(DOCKER_RUN) ./deployment/build-s3-dist.sh "$(DIST_BUCKET)" account-assessment-for-aws-organizations "$(VERSION)"
+	@test -n "$(DIST_BUCKET)" || (echo "Usage: make distribution DIST_BUCKET=<bucket-base-name> [VERSION=<version>]"; exit 2)
+	$(DOCKER_RUN) ./deployment/build-s3-dist.sh "$(DIST_BUCKET)" $(VERSION)
 
 clean:
 	./deployment/clean.sh

@@ -13,13 +13,29 @@ import {SpokeStack} from "../lib/account-assessment-spoke-stack";
 import {IConstruct} from "constructs";
 import {CfnPolicy} from "aws-cdk-lib/aws-iam";
 import {addCfnSuppressRules} from "@aws-solutions-constructs/core";
+import {readSolutionConfig, SOLUTION_CONFIG_RELATIVE_PATH} from "../lib/solution-config";
 
 const app = new cdk.App();
+const repoRoot = path.resolve(__dirname, '../../..');
+const solutionConfig = readSolutionConfig(repoRoot);
 
+/**
+ * Resolves a solution setting, most specific source first: an explicit
+ * environment variable, then explicit CDK context (`cdk -c name=value`), then
+ * deployment/solution_config, which is the checked-in source of truth. These
+ * values are deliberately absent from cdk.json so there is only one place to
+ * update them at release time.
+ */
 function getSetting(envVariableName: string, contextName: string, fallback?: string): string {
-  const value = process.env[envVariableName] ?? app.node.tryGetContext(contextName) ?? fallback;
+  const value = process.env[envVariableName]
+    ?? app.node.tryGetContext(contextName)
+    ?? solutionConfig[envVariableName]
+    ?? fallback;
   if (value == undefined || value === '') {
-    throw new Error(`Missing required setting ${envVariableName} or CDK context ${contextName}`);
+    throw new Error(
+      `Missing required setting ${envVariableName}. Set the environment variable, pass`
+      + ` CDK context ${contextName}, or declare it in ${SOLUTION_CONFIG_RELATIVE_PATH}.`
+    );
   }
   return value;
 }
@@ -45,7 +61,7 @@ const solutionBucketName = ASSET_MODE === 'distribution'
   ? getSetting('DIST_OUTPUT_BUCKET', 'distribution_bucket')
   : undefined;
 const localWebUiAssetPath = ASSET_MODE === 'local'
-  ? path.resolve(__dirname, '../../../deployment/regional-s3-assets/webui')
+  ? path.join(repoRoot, 'deployment/regional-s3-assets/webui')
   : undefined;
 
 if (localWebUiAssetPath && !existsSync(localWebUiAssetPath)) {

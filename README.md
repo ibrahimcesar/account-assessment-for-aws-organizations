@@ -139,8 +139,13 @@ The cloud assembly is written to `deployment/cdk.out/`.
 Generate the artifacts attached to a GitHub release:
 
 ```shell
-make package VERSION=v1.1.14
+make package
 ```
+
+The version comes from `SOLUTION_VERSION` in `deployment/solution_config`, which is the single source of truth for the
+solution id, names, and version. Bump it together with `CHANGELOG.md` when preparing a release; the release workflow
+refuses to publish when the git tag and the declared version disagree. Pass `make package VERSION=<version>` to override
+it for a throwaway build.
 
 The release directory contains:
 
@@ -202,7 +207,7 @@ Maintainers who need the historical AWS Solutions layout can still generate `glo
 `regional-s3-assets/`:
 
 ```shell
-make distribution DIST_BUCKET=<BUCKET_BASE_NAME> VERSION=v1.1.13
+make distribution DIST_BUCKET=<BUCKET_BASE_NAME>
 ```
 
 This publication path is separate from both the GitHub installer and the direct-CDK deployment paths.

@@ -17,10 +17,24 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
+      - name: Verify the release tag matches the declared solution version
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          set -Eeuo pipefail
+          # shellcheck disable=SC1091
+          source ./deployment/solution_config
+          if [[ "$SOLUTION_VERSION" != "$RELEASE_TAG" ]]; then
+            echo "Release tag '$RELEASE_TAG' does not match SOLUTION_VERSION" \
+              "'$SOLUTION_VERSION' in deployment/solution_config." >&2
+            echo "Bump deployment/solution_config and CHANGELOG.md, then re-run this release." >&2
+            exit 1
+          fi
+
       - name: Build CloudFormation installer and payload
         env:
           RELEASE_REPOSITORY: ${{ github.repository }}
-        run: make package VERSION="${{ github.event.release.tag_name }}"
+        run: make package
 
       - name: Attach deployment artifacts to GitHub release
         env:

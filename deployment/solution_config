@@ -1,3 +1,4 @@
 SOLUTION_ID='SO0217'
 SOLUTION_NAME='Account Assessment for AWS Organizations'
 SOLUTION_TRADEMARKEDNAME='account-assessment-for-aws-organizations'
+SOLUTION_VERSION='v1.1.13'

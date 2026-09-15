@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- `deployment/solution_config` is now the single source of truth for the solution id, names, and version. The CDK app reads it directly, `cdk.json` no longer carries duplicate copies, and the release workflow fails when the git tag and the declared version disagree.
 - Direct CDK deployments now package local Lambda and WebUI assets without requiring a manually managed distribution bucket.
 - The hub deployment now discovers organization details instead of requiring organization and management account parameters.
 - End-user deployment no longer requires Docker, Node.js, npm, GNU Make, the AWS CLI, or a CDK bootstrap.

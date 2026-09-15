@@ -8,11 +8,19 @@ set -Eeuo pipefail
 deployment_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 repo_root="$(cd "$deployment_dir/.." && pwd -P)"
 infra_dir="$repo_root/source/infra"
-version="${1:-}"
 release_repository="${RELEASE_REPOSITORY:-aws-solutions-library-samples/account-assessment-for-aws-organizations}"
 
+# shellcheck disable=SC1091
+source "$deployment_dir/solution_config"
+
+# solution_config is the single source of truth for the version. An explicit
+# argument overrides it so CI can build throwaway artifacts, and so a release
+# can be built for a tag before the bump lands.
+version="${1:-${SOLUTION_VERSION:-}}"
+
 if [[ -z "$version" ]]; then
-  echo "Usage: $0 <release-version>" >&2
+  echo "Usage: $0 [release-version]" >&2
+  echo "Defaults to SOLUTION_VERSION in deployment/solution_config." >&2
   exit 2
 fi
 
@@ -20,9 +28,6 @@ if [[ ! "$version" =~ ^v?[A-Za-z0-9][A-Za-z0-9._-]*$ ]]; then
   echo "Invalid release version: $version" >&2
   exit 2
 fi
-
-# shellcheck disable=SC1091
-source "$deployment_dir/solution_config"
 
 export SOLUTION_ID
 export SOLUTION_NAME

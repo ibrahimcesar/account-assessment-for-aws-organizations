@@ -42,20 +42,41 @@ These steps deploy the Guidance from source with AWS CDK. The deployment uses th
 
 Before deploying:
 
-- Install Python 3.12+, Node.js 22+, npm, and Poetry v2 with the export plugin.
+- Install the AWS CLI, Python 3.12, Node.js 22+, npm, and Poetry v2 with the export plugin. The Lambda build must use
+  Python 3.12; verify that both `python3` and `pip3` resolve to that version.
 - Configure AWS CLI profiles for the hub, organization management, and spoke accounts. Configure all profiles to use
   the same AWS Region.
-- In the organization management account, enable resource sharing with AWS Organizations in AWS Resource Access
-  Manager.
-- Ensure that the credentials used for each profile have permission to bootstrap and deploy AWS CDK stacks.
+- Ensure that the credentials used for each profile have permission to deploy the applicable AWS CDK stack. The hub
+  credentials must also have permission to bootstrap the account.
+
+Verify the local build tools:
+
+```shell
+python3 --version
+pip3 --version
+node --version
+poetry --version
+
+poetry self add poetry-plugin-export
+poetry export --help
+```
+
+If the Poetry installation cannot install self plugins, use an isolated Python 3.12 environment for the build:
+
+```shell
+python3.12 -m venv /tmp/account-assessment-build
+source /tmp/account-assessment-build/bin/activate
+pip install "poetry>=2,<3" poetry-plugin-export
+```
 
 Clone the repository and configure the deployment values:
 
 ```shell
-git clone https://github.com/aws-solutions/account-assessment-for-aws-organizations.git
+git clone https://github.com/aws-solutions-library-samples/account-assessment-for-aws-organizations.git
 cd account-assessment-for-aws-organizations
 
-export AWS_REGION=us-east-1
+export AWS_REGION=us-east-2
+export AWS_DEFAULT_REGION="$AWS_REGION"
 export PROFILE_HUB=hub-profile
 export PROFILE_ORG_MGMT=org-management-profile
 export PROFILE_SPOKE=spoke-profile
@@ -70,6 +91,29 @@ export SOLUTION_NAME="Account Assessment for AWS Organizations"
 export SOLUTION_TRADEMARKEDNAME=account-assessment-for-aws-organizations
 export SOLUTION_VERSION=v1.1.13
 export ASSET_BUCKET_NAME="${DIST_OUTPUT_BUCKET}-${AWS_REGION}"
+```
+
+Confirm that each profile targets the expected account before creating resources:
+
+```shell
+aws sts get-caller-identity --profile "$PROFILE_HUB"
+aws sts get-caller-identity --profile "$PROFILE_ORG_MGMT"
+aws sts get-caller-identity --profile "$PROFILE_SPOKE"
+```
+
+In the organization management account, enable resource sharing with AWS Organizations in AWS Resource Access
+Manager. This enables trusted access for AWS RAM across the organization and should be approved by the organization
+administrator:
+
+```shell
+aws ram enable-sharing-with-aws-organization \
+  --region "$AWS_REGION" \
+  --profile "$PROFILE_ORG_MGMT"
+
+aws organizations list-aws-service-access-for-organization \
+  --query "EnabledServicePrincipals[?ServicePrincipal=='ram.amazonaws.com'].ServicePrincipal" \
+  --output text \
+  --profile "$PROFILE_ORG_MGMT"
 ```
 
 The asset bucket must be in the hub account. Create it, build the Lambda and Web UI assets, and upload the Web UI:
@@ -90,16 +134,19 @@ aws s3 cp deployment/regional-s3-assets/webui/ \
   --profile "$PROFILE_HUB"
 ```
 
-Install the CDK project dependencies and bootstrap each target account and Region:
+Install the CDK project dependencies, compile the CDK application, and bootstrap the hub account and Region:
 
 ```shell
 cd source/infra
 npm ci
+npm run build
 
 npm run cdk -- bootstrap "aws://${HUB_ACCOUNT_ID}/${AWS_REGION}" --profile "$PROFILE_HUB"
-npm run cdk -- bootstrap "aws://${MANAGEMENT_ACCOUNT_ID}/${AWS_REGION}" --profile "$PROFILE_ORG_MGMT"
-npm run cdk -- bootstrap "aws://${SPOKE_ACCOUNT_ID}/${AWS_REGION}" --profile "$PROFILE_SPOKE"
 ```
+
+The organization management and spoke stacks do not currently contain file assets, so they can be deployed without
+bootstrapping when the active credentials can deploy CloudFormation directly. Bootstrap those accounts too if your
+environment requires the CDK deployment roles.
 
 Choose the stack parameter values:
 
@@ -110,14 +157,49 @@ Choose the stack parameter values:
 - `ManagementAccountId`: The account ID of the AWS Organizations management account.
 - `HubAccountId`: The account ID where the hub stack is deployed.
 
-Deploy the hub stack first so that its IAM roles exist before the cross-account stacks are created:
+Set the stack parameter values:
 
 ```shell
 export DEPLOYMENT_NAMESPACE=acct-scan
 export USER_EMAIL=admin@example.com
-export ALLOW_LISTED_IP_RANGES="0.0.0.0/1,128.0.0.0/1"
+export ALLOW_LISTED_IP_RANGES="203.0.113.10/32"
 export ORGANIZATION_ID=o-example12345
+```
 
+Replace the example email and CIDR with reachable, trusted values. The email receives the initial Amazon Cognito
+invitation. Avoid the template's internet-wide allow-list default unless that exposure is intentional.
+
+Review the proposed changes before deployment:
+
+```shell
+npm run cdk -- diff account-assessment-for-aws-organizations-hub \
+  --parameters DeploymentNamespace="$DEPLOYMENT_NAMESPACE" \
+  --parameters UserEmail="$USER_EMAIL" \
+  --parameters AllowListedIPRanges="$ALLOW_LISTED_IP_RANGES" \
+  --parameters OrganizationID="$ORGANIZATION_ID" \
+  --parameters ManagementAccountId="$MANAGEMENT_ACCOUNT_ID" \
+  --region "$AWS_REGION" \
+  --profile "$PROFILE_HUB"
+
+npm run cdk -- diff account-assessment-for-aws-organizations-org-management \
+  --parameters DeploymentNamespace="$DEPLOYMENT_NAMESPACE" \
+  --parameters HubAccountId="$HUB_ACCOUNT_ID" \
+  --region "$AWS_REGION" \
+  --profile "$PROFILE_ORG_MGMT"
+
+npm run cdk -- diff account-assessment-for-aws-organizations-spoke \
+  --parameters DeploymentNamespace="$DEPLOYMENT_NAMESPACE" \
+  --parameters HubAccountId="$HUB_ACCOUNT_ID" \
+  --region "$AWS_REGION" \
+  --profile "$PROFILE_SPOKE"
+```
+
+Run CDK commands sequentially when they use the default `cdk.out` directory. Parallel commands must each use a
+different `--output` directory.
+
+Deploy the stacks:
+
+```shell
 npm run deploy -- \
   --parameters DeploymentNamespace="$DEPLOYMENT_NAMESPACE" \
   --parameters UserEmail="$USER_EMAIL" \
@@ -140,9 +222,9 @@ npm run deploySpoke -- \
   --profile "$PROFILE_SPOKE"
 ```
 
-Repeat the bootstrap and spoke deployment commands for every account that the Guidance should assess. Before each
-production deployment, run `npm run cdk -- diff <stack-name>` with the same parameters and profile to review the
-proposed changes.
+Repeat the spoke diff and deployment commands for every account that the Guidance should assess. Use a profile that
+targets the account, or assume a deployment role such as `AWSControlTowerExecution` where your governance model
+permits it.
 
 Return to the repository root when the deployment is complete:
 
@@ -156,7 +238,7 @@ cd ../..
 
 ### Setup
 
-- Python 3.12+ with pip
+- Python 3.12 with pip
 - AWS CDK 2.1021.0+
 - Node.js 22+ with npm
 - Poetry v2 with plugin to export
@@ -164,7 +246,7 @@ cd ../..
 Clone the repository and make the desired code changes.
 
 ```shell
-git clone https://github.com/aws-solutions/account-assessment-for-aws-organizations.git
+git clone https://github.com/aws-solutions-library-samples/account-assessment-for-aws-organizations.git
 ```
 
 _Note: Following steps have been tested under above pre-requisites_

@@ -1,7 +1,8 @@
-# Account Assessment for AWS Organizations
+# Guidance for Account Assessment for AWS Organizations
 
-Account Assessment for AWS Organizations programmatically scans all AWS accounts in an AWS Organization for
-identity-based and resource-based policies with Organization-based conditions.
+Guidance for Account Assessment for AWS Organizations provides centralized visibility into dependencies across an
+AWS Organization. It discovers trusted access enabled services, delegated administrator accounts, and identity-based,
+resource-based, and service control policies across accounts and AWS Regions.
 
 **[🚀 Guidance landing page](https://aws.amazon.com/solutions/implementations/account-assessment-for-aws-organizations)**
 
@@ -23,8 +24,9 @@ implementation guide.
 
 ## Guidance overview
 
-This Guidance provides a centralized assessment of organization-aware identity-based and resource-based policies
-across accounts in an AWS Organization.
+This Guidance provides a web interface for on-demand scans of delegated administrator accounts and trusted access
+enabled services, plus daily automated scans of identity-based, resource-based, and service control policies across
+active accounts and AWS Regions.
 
 ## Architecture
 
@@ -83,7 +85,6 @@ export PROFILE_SPOKE=spoke-profile
 
 export HUB_ACCOUNT_ID=444455556666
 export MANAGEMENT_ACCOUNT_ID=111122223333
-export SPOKE_ACCOUNT_ID=777788889999
 
 export DIST_OUTPUT_BUCKET="account-assessment-staging-${HUB_ACCOUNT_ID}"
 export SOLUTION_ID=SO0217
